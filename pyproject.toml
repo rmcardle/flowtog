@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=80.10.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowtog"
+version = "1.0.0"
+description = ""
+authors = [
+    { name="Riley McArdle", email="riley@mcardle.org" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "dataclass-binder>=0.3.5",
+    "pyexiftool>=0.5.6",
+    "pywinauto>=0.6.9",
+    "textual>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "snakeviz>=2.2.2",
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"

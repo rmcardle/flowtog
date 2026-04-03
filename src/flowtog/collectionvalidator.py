@@ -1,0 +1,184 @@
+import logging
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Collection, Final, Iterable, Self
+
+from flowtog.collectiondirectories import DirectoryType
+from flowtog.collectionfile import CollectionFile
+from flowtog.collectionfiles import CollectionFiles
+from flowtog.config import CollectionConfig
+from flowtog.filegroup import FileGroup
+from flowtog.filegroup_utils import MissingRangeCoroutine, format_range, get_missing_range
+from flowtog.filetype import FileType
+from flowtog.path_utils import in_same_dir
+
+
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class CollectionValidator:
+    _collection: CollectionConfig
+    _files: CollectionFiles
+
+    @classmethod
+    def from_collection(cls, collection: CollectionConfig) -> Self:
+        return cls(
+            _collection=collection,
+            _files=CollectionFiles.from_collection(collection),
+        )
+
+    def validate(self) -> None:
+        missing_range_coroutine = get_missing_range(self._collection.start_num, skip_modulo=10000)
+
+        for group_name in self._files.group_names:
+            file_group = self._files.get_group(group_name)
+
+            self._validate_file_number(missing_range_coroutine, file_group)
+            self._validate_group(file_group)
+
+    def _validate_file_number(self, missing_range_coroutine: MissingRangeCoroutine, file_group: FileGroup) -> None:
+        if missing_range := missing_range_coroutine.send(file_group.group_num):
+            missing_files = format_range(missing_range, self._collection.filename_format, "file_num")
+            _LOG.error(f"{missing_files}: Missing")
+
+    def _validate_group(self, group: FileGroup) -> None:
+        for file_type in group.file_types:
+            files = group.get_type_files(file_type)
+            if file_type == FileType.JPEG and any(f.is_edit for f in files):
+                self._validate_edits(group, files)
+            elif file_type == FileType.Other:
+                self._validate_other_files(group, files)
+            else:
+                self._validate_allowed_dirs(group, file_type, files)
+                self._validate_multiple(group, file_type, list(files))
+
+    @staticmethod
+    def _validate_other_files(group: FileGroup, files: Iterable[CollectionFile]) -> None:
+        _log_file_path(logging.WARNING, f"{group.group_name}: Other files", files)
+
+    @staticmethod
+    def _validate_allowed_dirs(group: FileGroup,
+                               file_type: FileType,
+                               files: Iterable[CollectionFile]) -> None:
+        for file in files:
+            if file.directory_type not in _get_file_type_allowed_dir_types()[file_type]:
+                _log_file_path(logging.ERROR,
+                               f"{group.group_name}: {file_type.value} file in incorrect folder",
+                               file)
+
+    @staticmethod
+    def _validate_multiple(group: FileGroup, file_type: FileType, files: Collection[CollectionFile]) -> None:
+        if len(files) > 1:
+            _log_file_path(logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
+
+    @staticmethod
+    def _validate_missing(group: FileGroup) -> None:
+        if len(group.get_type_files(FileType.RAW)) < 1:
+            _LOG.error(f"{group.group_name}: Missing RAW file")
+
+        if len(group.get_type_files(FileType.JPEG)) < 1:
+            _LOG.error(f"{group.group_name}: Missing JPEG file")
+
+    @staticmethod
+    def _validate_xmp_same_dir(group: FileGroup) -> None:
+        if (FileType.JPEG not in group.file_types
+                or FileType.XMP not in group.file_types):
+            return
+
+        jpeg_files_by_filename: dict[str, list[CollectionFile]] = defaultdict(list)
+        for jpeg_file in group.get_type_files(FileType.JPEG):
+            jpeg_files_by_filename[jpeg_file.filename].append(jpeg_file)
+
+        invalid_xmp_files: list[CollectionFile] = []
+        for xmp_file in group.get_type_files(FileType.XMP):
+            jpeg_files = jpeg_files_by_filename[xmp_file.filename]
+            if (not any(
+                    in_same_dir(xmp_file.direntry, jpeg_file.direntry)
+                    for jpeg_file in jpeg_files)):
+                invalid_xmp_files.append(xmp_file)
+
+        if invalid_xmp_files:
+            _log_file_path(logging.ERROR,
+                           f"{group.group_name}: XMP files without matching JPEG file",
+                           invalid_xmp_files)
+
+    def _validate_edits(self, group: FileGroup, files: list[CollectionFile]) -> None:
+        self._validate_edit_duplicates(group, files)
+        self._validate_edit_nums(group, files)
+        self._validate_edit_dirs(group, files)
+
+    @staticmethod
+    def _validate_edit_duplicates(group: FileGroup, files: list[CollectionFile]) -> None:
+        files_by_name: dict[str, list[CollectionFile]] = defaultdict(list)
+        for file in files:
+            files_by_name[file.filename].append(file)
+
+        for filename, files in files_by_name.items():
+            if len(files) > 1:
+                _log_file_path(logging.ERROR, f"{group.group_name}: Duplicates of {filename}", files)
+
+    @staticmethod
+    def _validate_edit_nums(group: FileGroup, files: list[CollectionFile]) -> None:
+        missing_edits: list[str] = []
+        edit_nums = sorted(set([file.edit_num for file in files if file.is_edit]))
+        missing_range_coroutine = get_missing_range(1)
+        for edit_num in edit_nums:
+            if missing_range := missing_range_coroutine.send(edit_num):
+                missing_edits.append(format_range(missing_range))
+        if missing_edits:
+            _LOG.error(f"{group.group_name}: Missing edits {', '.join(missing_edits)}")
+
+    def _validate_edit_dirs(self, group: FileGroup, files: list[CollectionFile]) -> None:
+        sorted_files = sorted(files, key=lambda file: file.edit_num)
+
+        original = sorted_files[0]
+        if original.edit_num != 0 or original.is_edit:
+            _log_file_path(logging.ERROR, f"{group.group_name}: Missing original for edit", original)
+        elif original.directory_type != DirectoryType.Originals:
+            _log_file_path(logging.ERROR,
+                           f'{group.group_name}: Original not in "{self._collection.originals_dir}" directory',
+                           original)
+
+        current = sorted_files[-1]
+        if current.directory_type != DirectoryType.Photos:
+            _log_file_path(logging.ERROR,
+                           f'{group.group_name}: Current edit not in "{self._collection.photos_dir}" directory',
+                           current)
+
+        for previous_edit in sorted_files[1:-1]:
+            if previous_edit.directory_type != DirectoryType.PreviousEdits:
+                _log_file_path(logging.ERROR,
+                               f'{group.group_name}: Previous edit not in '
+                               f'"{self._collection.previous_edits_dir}" directory',
+                               previous_edit)
+
+
+def _get_file_type_allowed_dir_types() -> dict[FileType, list[DirectoryType]]:
+    return {
+        FileType.RAW:  [
+            DirectoryType.Rejected,
+            DirectoryType.Raw,
+            DirectoryType.Unsorted,
+        ],
+        FileType.JPEG: [
+            DirectoryType.Originals,
+            DirectoryType.Photos,
+            DirectoryType.PreviousEdits,
+            DirectoryType.Rejected,
+            DirectoryType.Unsorted,
+        ],
+        FileType.XMP:  [
+            DirectoryType.Rejected,
+            DirectoryType.Photos,
+            DirectoryType.Unsorted,
+        ],
+    }
+
+
+def _log_file_path(level: int, msg: str, files: CollectionFile | Iterable[CollectionFile]) -> None:
+    files_iterable = files if isinstance(files, Iterable) else [files]
+    lines = [msg]
+    for file in files_iterable:
+        lines.append(f"\t{file.path}")
+    _LOG.log(level, '\n'.join(lines))
