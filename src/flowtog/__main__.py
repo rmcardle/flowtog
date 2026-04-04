@@ -3,6 +3,7 @@ import logging
 import sys
 from typing import Final
 
+from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionvalidator import CollectionValidator
 from flowtog.config import Config
 
@@ -25,8 +26,8 @@ def _main(args: argparse.Namespace) -> None:
 
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
     collection = config.collection["DSC"]
-    
-    validator = CollectionValidator.from_collection(collection)
+    collection_files = CollectionFiles.from_collection(collection)
+    validator = CollectionValidator.from_collection_files(collection_files)
     validator.validate()
 
     _LOG.debug(f"Flowtog {_VERSION} exiting")

@@ -18,14 +18,14 @@ _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class CollectionValidator:
-    _collection: CollectionConfig
     _files: CollectionFiles
+    _collection: CollectionConfig
 
     @classmethod
-    def from_collection(cls, collection: CollectionConfig) -> Self:
+    def from_collection_files(cls, collection_files: CollectionFiles) -> Self:
         return cls(
-            _collection=collection,
-            _files=CollectionFiles.from_collection(collection),
+            _files=collection_files,
+            _collection=collection_files.collection,
         )
 
     def validate(self) -> None:
@@ -61,6 +61,7 @@ class CollectionValidator:
     def _validate_allowed_dirs(group: FileGroup,
                                file_type: FileType,
                                files: Iterable[CollectionFile]) -> None:
+        # Edits are handled in _validate_edit_dirs() so we don't need to worry about those here
         for file in files:
             if file.directory_type not in _get_file_type_allowed_dir_types()[file_type]:
                 _log_file_path(logging.ERROR,

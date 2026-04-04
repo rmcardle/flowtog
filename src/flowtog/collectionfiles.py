@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class CollectionFiles:
-    _collection: CollectionConfig
+    collection: CollectionConfig
     _directories: CollectionDirectories
     _filename_parser: CollectionFilenameParser
 
@@ -29,7 +29,7 @@ class CollectionFiles:
     @classmethod
     def from_collection(cls, collection: CollectionConfig) -> Self:
         return cls(
-            _collection=collection,
+            collection=collection,
             _directories=CollectionDirectories.from_collection(collection),
             _filename_parser=CollectionFilenameParser.from_collection(collection),
         )
