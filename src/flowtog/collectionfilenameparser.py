@@ -1,9 +1,12 @@
 from dataclasses import dataclass
-from re import Pattern
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
-from flowtog.config import CollectionConfig
 from flowtog.path_utils import PathArg, get_filename_stem
+
+if TYPE_CHECKING:
+    from re import Pattern
+
+    from flowtog.config import CollectionConfig
 
 
 @dataclass(frozen=True)
