@@ -1,7 +1,10 @@
-import os
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from flowtog.path_utils import get_extension_lower
+
+if TYPE_CHECKING:
+    import os
 
 
 class FileType(Enum):

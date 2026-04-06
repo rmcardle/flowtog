@@ -1,9 +1,11 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
-from flowtog.collectionfile import CollectionFile
 from flowtog.filetype import FileType
+
+if TYPE_CHECKING:
+    from flowtog.collectionfile import CollectionFile
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,5 @@
+from collections.abc import Generator
 from functools import wraps
-from typing import Generator
 
 
 def coroutine(func):

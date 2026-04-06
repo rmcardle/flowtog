@@ -1,13 +1,15 @@
 import os
 import re
-import win32com.client
 from dataclasses import Field, dataclass, field, fields
-from typing import Final, Mapping, Self
+from typing import TYPE_CHECKING, Final, Self
 
+import win32com.client
 from dataclass_binder import Binder
 
 from flowtog.path_utils import get_extension_lower
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 _CONFIG_FILE_NAME: Final[str] = "flowtog.toml"
 _DEFAULT_FILENAME_REGEX: Final[str] = r"^(?P<group_name>DSC(?P<file_num>\d{5}))(?:-(?P<edit_num>\d+))?$"
@@ -48,13 +50,13 @@ class CollectionConfig:
 
 @dataclass(frozen=True)
 class Person:
-    groups: list[str] = field(default_factory=list)
+    groups: list[str] = field(default_factory=list[str])
 
 
 @dataclass(frozen=True)
 class Config:
-    collection: Mapping[str, CollectionConfig] = field(default_factory=dict)
-    people: Mapping[str, Person] = field(default_factory=dict)
+    collection: Mapping[str, CollectionConfig] = field(default_factory=dict[str, CollectionConfig])
+    people: Mapping[str, Person] = field(default_factory=dict[str, Person])
 
     @classmethod
     def load(cls, config_file_path: str | None) -> Self:

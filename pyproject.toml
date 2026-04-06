@@ -19,8 +19,23 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pyright>=1.1.408",
+    "ruff>=0.15.9",
     "snakeviz>=2.2.2",
 ]
 
 [tool.pyright]
 typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length=120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D1",
+    "TD002",
+    "TD003",
+]

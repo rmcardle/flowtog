@@ -1,9 +1,12 @@
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from flowtog.path_utils import PathArg, get_directory
+
+if TYPE_CHECKING:
+    from flowtog.config import CollectionConfig
 
 
 class DirectoryType(Enum):
@@ -22,13 +25,13 @@ class CollectionDirectories:
     type_by_normalized_directory: dict[str, DirectoryType] = field(init=False)
 
     @classmethod
-    def from_collection(cls, collection) -> Self:
+    def from_collection(cls, collection: CollectionConfig) -> Self:
         return cls(
             directories_by_type=CollectionDirectories._get_directories_by_type(collection),
         )
 
     @staticmethod
-    def _get_directories_by_type(collection) -> dict[DirectoryType, str]:
+    def _get_directories_by_type(collection: CollectionConfig) -> dict[DirectoryType, str]:
         return {DirectoryType(directory_type): directory
                 for directory_type, directory in collection.directories.items()}
 

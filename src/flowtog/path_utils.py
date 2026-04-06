@@ -1,6 +1,5 @@
 import os
 
-
 PathArg = str | os.PathLike[str] | os.DirEntry[str]
 
 
