@@ -6,8 +6,6 @@ from flowtog.metadatatype import MetadataType
 from flowtog.path_utils import get_filename_stem
 
 if TYPE_CHECKING:
-    import os
-
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.metadatasession import MetadataSession
@@ -31,8 +29,8 @@ class CollectionMetadata:
     def _load_metadata(self) -> None:
         self._metadata_session.load_metadata(self._files.get_files_by_type(FileType.XMP))
 
-    def get_metadata(self, path: str | os.PathLike[str]) -> dict[MetadataType, str | list[str]]:
-        return self._metadata_session.get_metadata(path)
+    def get_metadata(self, file: CollectionFile) -> dict[MetadataType, str | list[str]]:
+        return self._metadata_session.get_metadata(file)
 
     def get_rating(self, file: CollectionFile) -> int | None:
         if not (xmp_path := self._get_xmp_path(file)):
@@ -42,8 +40,8 @@ class CollectionMetadata:
             return None
         return int(rating)
 
-    def set_metadata(self, path: str | os.PathLike[str], metadata_by_type: dict[MetadataType, str | list[str]]) -> None:
-        self._metadata_session.set_metadata(path, metadata_by_type)
+    def set_metadata(self, file: CollectionFile, metadata_by_type: dict[MetadataType, str | list[str]]) -> None:
+        self._metadata_session.set_metadata(file, metadata_by_type)
 
     def _get_xmp_path(self, file: CollectionFile) -> str | None:
         assert file.file_type == FileType.JPEG
