@@ -9,6 +9,10 @@ def get_directory(path: PathArg) -> str:
 
 
 def get_filename(path: PathArg) -> str:
+    return os.path.basename(_get_name(path))
+
+
+def get_filename_stem(path: PathArg) -> str:
     return os.path.splitext(_get_name(path))[0]
 
 
