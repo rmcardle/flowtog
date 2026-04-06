@@ -5,7 +5,7 @@ PathArg = str | os.PathLike[str] | os.DirEntry[str]
 
 
 def get_directory(path: PathArg) -> str:
-    return os.path.dirname(_get_path(path))
+    return os.path.dirname(get_path(path))
 
 
 def get_filename(path: PathArg) -> str:
@@ -25,18 +25,18 @@ def get_extension_lower(path: PathArg) -> str:
 
 
 def is_in_dir(path: PathArg, directory: PathArg) -> bool:
-    directory_path = _get_path(directory)
+    directory_path = get_path(directory)
     return (os.path.isdir(directory_path)
-            and os.path.samefile(os.path.dirname(_get_path(path)), directory_path))
+            and os.path.samefile(os.path.dirname(get_path(path)), directory_path))
 
 
 def in_same_dir(path1: PathArg, path2: PathArg) -> bool:
-    dir1 = os.path.dirname(_get_path(path1))
-    dir2 = os.path.dirname(_get_path(path2))
+    dir1 = os.path.dirname(get_path(path1))
+    dir2 = os.path.dirname(get_path(path2))
     return os.path.samefile(dir1, dir2)
 
 
-def _get_path(path: PathArg) -> str:
+def get_path(path: PathArg) -> str:
     if isinstance(path, os.DirEntry):
         return path.path
     if isinstance(path, os.PathLike):
