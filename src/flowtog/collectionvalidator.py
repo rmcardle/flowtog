@@ -6,6 +6,7 @@ from typing import Collection, Final, Iterable, Self
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.collectionfile import CollectionFile
 from flowtog.collectionfiles import CollectionFiles
+from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.config import CollectionConfig
 from flowtog.filegroup import FileGroup
 from flowtog.filegroup_utils import MissingRangeCoroutine, format_range, get_missing_range
@@ -20,12 +21,14 @@ _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 class CollectionValidator:
     _files: CollectionFiles
     _collection: CollectionConfig
+    _collection_metadata: CollectionMetadata
 
     @classmethod
-    def from_collection_files(cls, collection_files: CollectionFiles) -> Self:
+    def from_collection_files(cls, collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> Self:
         return cls(
             _files=collection_files,
             _collection=collection_files.collection,
+            _collection_metadata=collection_metadata,
         )
 
     def validate(self) -> None:
@@ -57,15 +60,24 @@ class CollectionValidator:
     def _validate_other_files(group: FileGroup, files: Iterable[CollectionFile]) -> None:
         _log_file_path(logging.WARNING, f"{group.group_name}: Other files", files)
 
-    @staticmethod
-    def _validate_allowed_dirs(group: FileGroup,
+    def _validate_allowed_dirs(self,
+                               group: FileGroup,
                                file_type: FileType,
                                files: Iterable[CollectionFile]) -> None:
+        selected_file_minimum_rating: Final[int] = 2
         # Edits are handled in _validate_edit_dirs() so we don't need to worry about those here
         for file in files:
             if file.directory_type not in _get_file_type_allowed_dir_types()[file_type]:
                 _log_file_path(logging.ERROR,
                                f"{group.group_name}: {file_type.value} file in incorrect folder",
+                               file)
+            if file_type == FileType.JPEG \
+                    and (rating := self._collection_metadata.get_rating(file)) \
+                    and rating > selected_file_minimum_rating \
+                    and file.directory_type in [DirectoryType.Unsorted, DirectoryType.Rejected]:
+                _log_file_path(logging.WARNING,
+                               f"{file_type.value} file with rating higher than {selected_file_minimum_rating} "
+                               f"(rating {rating}) in {file.directory_type.value}",
                                file)
 
     @staticmethod

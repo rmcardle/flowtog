@@ -4,16 +4,13 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Generator, Iterable, Self
 
-from flowtog.collectiondirectories import CollectionDirectories
+from flowtog.collectiondirectories import CollectionDirectories, DirectoryType
 from flowtog.collectionfile import CollectionFile
 from flowtog.collectionfilenameparser import CollectionFilenameParser
 from flowtog.config import CollectionConfig
 from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType, get_file_type
 from flowtog.path_utils import get_filename
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -25,6 +22,7 @@ class CollectionFiles:
     _group_names: set[str] = field(init=False)
     _groups_by_name: dict[str, FileGroup] = field(init=False)
     _xmp_files: list[CollectionFile] = field(init=False)
+    _xmp_files_in_photos_dir: list[CollectionFile] = field(init=False)
 
     @classmethod
     def from_collection(cls, collection: CollectionConfig) -> Self:
@@ -41,6 +39,7 @@ class CollectionFiles:
         group_names: set[str] = set()
         files_by_group_name: dict[str, list[CollectionFile]] = defaultdict(list)
         xmp_files: list[CollectionFile] = []
+        xmp_files_in_photos_dir: list[CollectionFile] = []
 
         # CollectionDirectories.get_directory_type() assumes that all paths are absolute
         # That will only be true if os.scandir() is called with absolute paths
@@ -52,7 +51,10 @@ class CollectionFiles:
                 file = self._create_collection_file(directory_entry)
                 files_by_group_name[group_name].append(file)
                 if file.file_type == FileType.XMP:
-                    xmp_files.append(file)
+                    if file.directory_type in [DirectoryType.Unsorted, DirectoryType.Rejected]:
+                        xmp_files.append(file)
+                    if file.directory_type == DirectoryType.Photos:
+                        xmp_files_in_photos_dir.append(file)
 
         groups_by_name: dict[str, FileGroup] = {}
         for group_name in group_names:
@@ -66,6 +68,7 @@ class CollectionFiles:
         object.__setattr__(self, "_group_names", sorted(group_names))
         object.__setattr__(self, "_groups_by_name", groups_by_name)
         object.__setattr__(self, "_xmp_files", xmp_files)
+        object.__setattr__(self, "_xmp_files_in_photos_dir", xmp_files_in_photos_dir)
 
     def _create_collection_file(self,
                                 direntry: os.DirEntry[str]) -> CollectionFile:
@@ -91,6 +94,17 @@ class CollectionFiles:
 
     def get_group(self, group_name: str) -> FileGroup:
         return self._groups_by_name[group_name]
+
+    def get_files_by_type(self, file_type: FileType) -> list[CollectionFile]:
+        assert file_type == FileType.XMP
+        return self._xmp_files
+
+    def get_files_by_directory_and_type(self,
+                                        directory_type: DirectoryType,
+                                        file_type: FileType) -> list[CollectionFile]:
+        assert directory_type == DirectoryType.Photos
+        assert file_type == FileType.XMP
+        return self._xmp_files_in_photos_dir
 
 
 def _get_directory_entries(directory: str | Iterable[str]) -> Generator[os.DirEntry]:
