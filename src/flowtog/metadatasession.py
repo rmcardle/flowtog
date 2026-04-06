@@ -1,14 +1,16 @@
 import logging
 import os
-from contextlib import AbstractContextManager
-from types import TracebackType
-from typing import Final, Iterable, Mapping, Self
+from contextlib import AbstractContextManager, suppress
+from typing import TYPE_CHECKING, Final, Self
 
-from exiftool import ExifTool, ExifToolHelper
+from exiftool import ExifTool, ExifToolHelper  # pyright: ignore [reportMissingTypeStubs]
 
 from flowtog.metadatatype import MetadataType
 from flowtog.path_utils import get_path
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+    from types import TracebackType
 
 _LOG = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ _EXIFTOOL_ARGS: Final[list[str]] = [
 _EXIFTOOL_SOURCE_FILE_TAG: Final[str] = "SourceFile"
 
 
-class MetadataSession (AbstractContextManager):
+class MetadataSession(AbstractContextManager["MetadataSession"]):
     _exif_tool_helper: ExifToolHelper
     _metadata_by_type_by_path: dict[str, dict[MetadataType, str | list[str]]]
 
@@ -36,7 +38,7 @@ class MetadataSession (AbstractContextManager):
                  exc_value: BaseException | None,
                  traceback: TracebackType | None,
                  /) -> bool | None:
-        self._exif_tool_helper.__exit__(exc_type, exc_value, traceback)
+        self._exif_tool_helper.__exit__(exc_type, exc_value, traceback)  # pyright: ignore [reportUnknownMemberType]
 
     def load_metadata(self, paths: Iterable[str | os.PathLike[str]]) -> None:
         file_system_paths = [os.fspath(path) if isinstance(path, os.PathLike) else path for path in paths]
@@ -52,7 +54,7 @@ class MetadataSession (AbstractContextManager):
         return self.get_metadata(path).get(metadata_type)
 
     def _read_metadata(self, paths: str | Iterable[str]) -> None:
-        tags_list: list[dict[str, str | list[str]]] = self._exif_tool_helper.get_tags(paths, _get_tag_names())
+        tags_list: list[dict[str, str | list[str]]] = self._exif_tool_helper.get_tags(paths, _get_tag_names())  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
         for tags_by_tag_name in tags_list:
             source_file = tags_by_tag_name.get(_EXIFTOOL_SOURCE_FILE_TAG)
             assert isinstance(source_file, str)
@@ -90,8 +92,6 @@ def _get_tag_names() -> list[str]:
 def _get_metadata_by_type(tags: Mapping[str, str | list[str]]) -> dict[MetadataType, str | list[str]]:
     metadata_by_type: dict[MetadataType, str | list[str]] = {}
     for tag, value in tags.items():
-        try:
+        with suppress(ValueError):
             metadata_by_type[MetadataType(tag)] = value
-        except ValueError:
-            pass
     return metadata_by_type

@@ -1,15 +1,13 @@
 import os
 import re
+from collections.abc import Mapping  # noqa: TC003
 from dataclasses import Field, dataclass, field, fields
-from typing import TYPE_CHECKING, Final, Self
+from typing import Final, Self
 
 import win32com.client
 from dataclass_binder import Binder
 
 from flowtog.path_utils import get_extension_lower
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 _CONFIG_FILE_NAME: Final[str] = "flowtog.toml"
 _DEFAULT_FILENAME_REGEX: Final[str] = r"^(?P<group_name>DSC(?P<file_num>\d{5}))(?:-(?P<edit_num>\d+))?$"
@@ -65,7 +63,7 @@ class Config:
                 "DSC": CollectionConfig(),
             })
         config = Binder(cls).parse_toml(config_file_path)
-        config._normalize_paths(os.path.dirname(config_file_path))
+        config._normalize_paths(os.path.dirname(config_file_path))  # noqa: SLF001
         return config
 
     def _normalize_paths(self, base_dir: str) -> None:

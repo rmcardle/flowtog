@@ -1,18 +1,20 @@
 import logging
 from collections import defaultdict
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
-from typing import Collection, Final, Iterable, Self
+from typing import TYPE_CHECKING, Final, Self
 
 from flowtog.collectiondirectories import DirectoryType
-from flowtog.collectionfile import CollectionFile
-from flowtog.collectionfiles import CollectionFiles
-from flowtog.collectionmetadata import CollectionMetadata
-from flowtog.config import CollectionConfig
-from flowtog.filegroup import FileGroup
 from flowtog.filegroup_utils import MissingRangeCoroutine, format_range, get_missing_range
 from flowtog.filetype import FileType
 from flowtog.path_utils import in_same_dir
 
+if TYPE_CHECKING:
+    from flowtog.collectionfile import CollectionFile
+    from flowtog.collectionfiles import CollectionFiles
+    from flowtog.collectionmetadata import CollectionMetadata
+    from flowtog.config import CollectionConfig
+    from flowtog.filegroup import FileGroup
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -122,9 +124,9 @@ class CollectionValidator:
         self._validate_edit_dirs(group, files)
 
     @staticmethod
-    def _validate_edit_duplicates(group: FileGroup, files: list[CollectionFile]) -> None:
+    def _validate_edit_duplicates(group: FileGroup, group_files: list[CollectionFile]) -> None:
         files_by_name: dict[str, list[CollectionFile]] = defaultdict(list)
-        for file in files:
+        for file in group_files:
             files_by_name[file.filename].append(file)
 
         for filename, files in files_by_name.items():
@@ -133,13 +135,13 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_edit_nums(group: FileGroup, files: list[CollectionFile]) -> None:
-        missing_edits: list[str] = []
-        edit_nums = sorted(set([file.edit_num for file in files if file.is_edit]))
+        edit_nums = sorted({f.edit_num for f in files if f.is_edit})
         missing_range_coroutine = get_missing_range(1)
-        for edit_num in edit_nums:
-            if missing_range := missing_range_coroutine.send(edit_num):
-                missing_edits.append(format_range(missing_range))
-        if missing_edits:
+        if missing_edits := [
+            format_range(missing_range)
+            for edit_num in edit_nums
+            if (missing_range := missing_range_coroutine.send(edit_num))
+        ]:
             _LOG.error(f"{group.group_name}: Missing edits {', '.join(missing_edits)}")
 
     def _validate_edit_dirs(self, group: FileGroup, files: list[CollectionFile]) -> None:
@@ -191,7 +193,5 @@ def _get_file_type_allowed_dir_types() -> dict[FileType, list[DirectoryType]]:
 
 def _log_file_path(level: int, msg: str, files: CollectionFile | Iterable[CollectionFile]) -> None:
     files_iterable = files if isinstance(files, Iterable) else [files]
-    lines = [msg]
-    for file in files_iterable:
-        lines.append(f"\t{file.path}")
-    _LOG.log(level, '\n'.join(lines))
+    lines = [msg, *[f"\t{f.path}" for f in files_iterable]]
+    _LOG.log(level, "\n".join(lines))

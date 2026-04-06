@@ -1,18 +1,23 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from functools import wraps
+from typing import ParamSpec, TypeVar
+
+type MissingRange = tuple[int, int] | None
+type MissingRangeCoroutine = Generator[MissingRange, int]
 
 
-def coroutine(func):
+P = ParamSpec("P") # Parameters
+Y = TypeVar("Y")   # Yielded Values
+S = TypeVar("S")   # Sent Values
+R = TypeVar("R")   # Return Value
+
+def coroutine[**P, Y, S, R](func: Callable[P, Generator[Y, S, R]]) -> Callable[P, Generator[Y, S, R]]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> Generator[Y, S, R]:
         f = func(*args, **kwargs)
         next(f)
         return f
     return wrapper
-
-
-type MissingRange = tuple[int, int] | None
-type MissingRangeCoroutine = Generator[MissingRange, int, None]
 
 
 @coroutine

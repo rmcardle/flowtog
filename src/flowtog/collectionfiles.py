@@ -2,15 +2,21 @@ import logging
 import os
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Generator, Iterable, Self
+from typing import TYPE_CHECKING, Final, Self
 
 from flowtog.collectiondirectories import CollectionDirectories, DirectoryType
 from flowtog.collectionfile import CollectionFile
 from flowtog.collectionfilenameparser import CollectionFilenameParser
-from flowtog.config import CollectionConfig
 from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType, get_file_type
 from flowtog.path_utils import get_filename
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable
+
+    from flowtog.config import CollectionConfig
+
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -59,7 +65,7 @@ class CollectionFiles:
         groups_by_name: dict[str, FileGroup] = {}
         for group_name in group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
-                logging.error(f"{group_name}: Could not determine file number")
+                _LOG.error(f"{group_name}: Could not determine file number")
                 continue
             group = FileGroup.from_files(group_name, group_num, files_by_group_name[group_name])
             groups_by_name[group_name] = group
@@ -107,7 +113,7 @@ class CollectionFiles:
         return self._xmp_files_in_photos_dir
 
 
-def _get_directory_entries(directory: str | Iterable[str]) -> Generator[os.DirEntry]:
+def _get_directory_entries(directory: str | Iterable[str]) -> Generator[os.DirEntry[str]]:
     # We can't check if directory is an Iterable because str is also Iterable
     if not isinstance(directory, str):
         for d in directory:
