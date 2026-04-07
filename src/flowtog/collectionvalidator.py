@@ -1,15 +1,17 @@
 import logging
 from collections import defaultdict
-from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, Self
 
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.filegroup_utils import MissingRangeCoroutine, format_range, get_missing_range
 from flowtog.filetype import FileType
+from flowtog.log_utils import log_file_path
 from flowtog.path_utils import in_same_dir
 
 if TYPE_CHECKING:
+    from collections.abc import Collection, Iterable
+
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.collectionmetadata import CollectionMetadata
@@ -60,7 +62,7 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_other_files(group: FileGroup, files: Iterable[CollectionFile]) -> None:
-        _log_file_path(logging.WARNING, f"{group.group_name}: Other files", files)
+        log_file_path(_LOG, logging.WARNING, f"{group.group_name}: Other files", files)
 
     def _validate_allowed_dirs(self,
                                group: FileGroup,
@@ -70,22 +72,24 @@ class CollectionValidator:
         # Edits are handled in _validate_edit_dirs() so we don't need to worry about those here
         for file in files:
             if file.directory_type not in _get_file_type_allowed_dir_types()[file_type]:
-                _log_file_path(logging.ERROR,
-                               f"{group.group_name}: {file_type.value} file in incorrect folder",
-                               file)
+                log_file_path(_LOG,
+                              logging.ERROR,
+                              f"{group.group_name}: {file_type.value} file in incorrect folder",
+                              file)
             if file_type == FileType.JPEG \
                     and (rating := self._collection_metadata.get_rating(file)) \
                     and rating > selected_file_minimum_rating \
                     and file.directory_type in [DirectoryType.Unsorted, DirectoryType.Rejected]:
-                _log_file_path(logging.WARNING,
-                               f"{file_type.value} file with rating higher than {selected_file_minimum_rating} "
-                               f"(rating {rating}) in {file.directory_type.value}",
-                               file)
+                log_file_path(_LOG,
+                              logging.WARNING,
+                              f"{file_type.value} file with rating higher than {selected_file_minimum_rating} "
+                              f"(rating {rating}) in {file.directory_type.value}",
+                              file)
 
     @staticmethod
     def _validate_multiple(group: FileGroup, file_type: FileType, files: Collection[CollectionFile]) -> None:
         if len(files) > 1:
-            _log_file_path(logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
+            log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
 
     @staticmethod
     def _validate_missing(group: FileGroup) -> None:
@@ -114,9 +118,10 @@ class CollectionValidator:
                 invalid_xmp_files.append(xmp_file)
 
         if invalid_xmp_files:
-            _log_file_path(logging.ERROR,
-                           f"{group.group_name}: XMP files without matching JPEG file",
-                           invalid_xmp_files)
+            log_file_path(_LOG,
+                          logging.ERROR,
+                          f"{group.group_name}: XMP files without matching JPEG file",
+                          invalid_xmp_files)
 
     def _validate_edits(self, group: FileGroup, files: list[CollectionFile]) -> None:
         self._validate_edit_duplicates(group, files)
@@ -131,7 +136,7 @@ class CollectionValidator:
 
         for filename, files in files_by_name.items():
             if len(files) > 1:
-                _log_file_path(logging.ERROR, f"{group.group_name}: Duplicates of {filename}", files)
+                log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Duplicates of {filename}", files)
 
     @staticmethod
     def _validate_edit_nums(group: FileGroup, files: list[CollectionFile]) -> None:
@@ -149,24 +154,27 @@ class CollectionValidator:
 
         original = sorted_files[0]
         if original.edit_num != 0 or original.is_edit:
-            _log_file_path(logging.ERROR, f"{group.group_name}: Missing original for edit", original)
+            log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Missing original for edit", original)
         elif original.directory_type != DirectoryType.Originals:
-            _log_file_path(logging.ERROR,
-                           f'{group.group_name}: Original not in "{self._collection.originals_dir}" directory',
-                           original)
+            log_file_path(_LOG,
+                          logging.ERROR,
+                          f'{group.group_name}: Original not in "{self._collection.originals_dir}" directory',
+                          original)
 
         current = sorted_files[-1]
         if current.directory_type != DirectoryType.Photos:
-            _log_file_path(logging.ERROR,
-                           f'{group.group_name}: Current edit not in "{self._collection.photos_dir}" directory',
-                           current)
+            log_file_path(_LOG,
+                logging.ERROR,
+                          f'{group.group_name}: Current edit not in "{self._collection.photos_dir}" directory',
+                          current)
 
         for previous_edit in sorted_files[1:-1]:
             if previous_edit.directory_type != DirectoryType.PreviousEdits:
-                _log_file_path(logging.ERROR,
-                               f'{group.group_name}: Previous edit not in '
-                               f'"{self._collection.previous_edits_dir}" directory',
-                               previous_edit)
+                log_file_path(_LOG,
+                              logging.ERROR,
+                              f'{group.group_name}: Previous edit not in '
+                              f'"{self._collection.previous_edits_dir}" directory',
+                              previous_edit)
 
 
 def _get_file_type_allowed_dir_types() -> dict[FileType, list[DirectoryType]]:
@@ -189,9 +197,3 @@ def _get_file_type_allowed_dir_types() -> dict[FileType, list[DirectoryType]]:
             DirectoryType.Unsorted,
         ],
     }
-
-
-def _log_file_path(level: int, msg: str, files: CollectionFile | Iterable[CollectionFile]) -> None:
-    files_iterable = files if isinstance(files, Iterable) else [files]
-    lines = [msg, *[f"\t{f.path}" for f in files_iterable]]
-    _LOG.log(level, "\n".join(lines))
