@@ -32,6 +32,7 @@ class CollectionConfig:
     unsorted_dir: str = _directory_field("Unsorted")
 
     start_num: int = 1
+    selected_rating: int = 3
 
     def __post_init__(self) -> None:
         # Use __setattr__ to avoid FrozenInstanceError

@@ -68,7 +68,6 @@ class CollectionValidator:
                                group: FileGroup,
                                file_type: FileType,
                                files: Iterable[CollectionFile]) -> None:
-        selected_file_minimum_rating: Final[int] = 2
         # Edits are handled in _validate_edit_dirs() so we don't need to worry about those here
         for file in files:
             if file.directory_type not in _get_file_type_allowed_dir_types()[file_type]:
@@ -78,11 +77,11 @@ class CollectionValidator:
                               file)
             if file_type == FileType.JPEG \
                     and (rating := self._collection_metadata.get_rating(file)) \
-                    and rating > selected_file_minimum_rating \
+                    and rating >= self._collection.selected_rating \
                     and file.directory_type in [DirectoryType.Unsorted, DirectoryType.Rejected]:
                 log_file_path(_LOG,
                               logging.WARNING,
-                              f"{file_type.value} file with rating higher than {selected_file_minimum_rating} "
+                              f"{file_type.value} file with rating {self._collection.selected_rating} or higher "
                               f"(rating {rating}) in {file.directory_type.value}",
                               file)
 
