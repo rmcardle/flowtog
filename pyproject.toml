@@ -36,6 +36,9 @@ line-length=120
 select = ["ALL"]
 ignore = [
     "D1",
+    "ERA001",
+    "FIX",
     "TD002",
     "TD003",
+    "S101",
 ]
