@@ -39,7 +39,7 @@ class CollectionValidator:
         missing_range_coroutine = get_missing_range(self._collection.start_num, skip_modulo=10000)
 
         for group_name in self._files.group_names:
-            file_group = self._files.get_group(group_name)
+            file_group = self._files.get_group_by_name(group_name)
 
             self._validate_file_number(missing_range_coroutine, file_group)
             self._validate_group(file_group)

@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 from flowtog.path_utils import PathArg, get_directory
@@ -21,13 +22,13 @@ class DirectoryType(Enum):
 
 @dataclass(frozen=True)
 class CollectionDirectories:
-    directories_by_type: dict[DirectoryType, str]
-    type_by_normalized_directory: dict[str, DirectoryType] = field(init=False)
+    _directories_by_type: dict[DirectoryType, str]
+    _type_by_normalized_directory: dict[str, DirectoryType] = field(init=False)
 
     @classmethod
     def from_collection(cls, collection: CollectionConfig) -> Self:
         return cls(
-            directories_by_type=CollectionDirectories._get_directories_by_type(collection),
+            _directories_by_type=CollectionDirectories._get_directories_by_type(collection),
         )
 
     @staticmethod
@@ -40,12 +41,12 @@ class CollectionDirectories:
 
     def _init_type_by_normalized_directory(self) -> None:
         type_by_normalized_directory: dict[str, DirectoryType] = {}
-        for directory_type, directory in self.directories_by_type.items():
+        for directory_type, directory in self._directories_by_type.items():
             # directories_by_type were already made absolute in Config.load()
             # so we only need to normalize case
             type_by_normalized_directory[os.path.normcase(directory)] = directory_type
         # Use __setattr__ to avoid FrozenInstanceError
-        object.__setattr__(self, "type_by_normalized_directory", type_by_normalized_directory)
+        object.__setattr__(self, "_type_by_normalized_directory", type_by_normalized_directory)
 
     @property
     def valid_directories(self) -> list[str]:
@@ -53,10 +54,13 @@ class CollectionDirectories:
 
     @property
     def _dirs(self) -> list[str]:
-        return list(self.directories_by_type.values())
+        return list(self._directories_by_type.values())
+
+    def get_directory_path(self, directory_type: DirectoryType) -> Path:
+        return Path(self._directories_by_type[directory_type])
 
     def get_directory_type(self, file: PathArg) -> DirectoryType:
         # The file path should already be absolute because we only used absolute paths with os.scandir()
         # so we only need to normalize case for comparison
         file_dir = os.path.normcase(get_directory(file))
-        return self.type_by_normalized_directory.get(file_dir, DirectoryType.Other)
+        return self._type_by_normalized_directory.get(file_dir, DirectoryType.Other)

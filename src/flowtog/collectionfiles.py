@@ -22,10 +22,11 @@ _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class CollectionFiles:
     collection: CollectionConfig
-    _directories: CollectionDirectories
+    directories: CollectionDirectories
     _filename_parser: CollectionFilenameParser
 
-    _group_names: set[str] = field(init=False)
+    _group_names: list[str] = field(init=False)
+    last_group_num: int = field(init=False)
     _groups_by_name: dict[str, FileGroup] = field(init=False)
     _xmp_files: list[CollectionFile] = field(init=False)
     _xmp_files_in_photos_dir: list[CollectionFile] = field(init=False)
@@ -34,7 +35,7 @@ class CollectionFiles:
     def from_collection(cls, collection: CollectionConfig) -> Self:
         return cls(
             collection=collection,
-            _directories=CollectionDirectories.from_collection(collection),
+            directories=CollectionDirectories.from_collection(collection),
             _filename_parser=CollectionFilenameParser.from_collection(collection),
         )
 
@@ -50,7 +51,7 @@ class CollectionFiles:
         # CollectionDirectories.get_directory_type() assumes that all paths are absolute
         # That will only be true if os.scandir() is called with absolute paths
         # CollectionDirectories.valid_directories were already made absolute in Config.load()
-        for directory_entry in _get_directory_entries(self._directories.valid_directories):
+        for directory_entry in _get_directory_entries(self.directories.valid_directories):
             if (directory_entry.is_file()
                     and (group_name := self._filename_parser.get_group_name(directory_entry))):
                 group_names.add(group_name)
@@ -63,15 +64,18 @@ class CollectionFiles:
                         xmp_files_in_photos_dir.append(file)
 
         groups_by_name: dict[str, FileGroup] = {}
+        last_group_num = self.collection.start_num - 1
         for group_name in group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
                 _LOG.error(f"{group_name}: Could not determine file number")
                 continue
             group = FileGroup.from_files(group_name, group_num, files_by_group_name[group_name])
             groups_by_name[group_name] = group
+            last_group_num = max(last_group_num, group_num)
 
         # Use __setattr__ to avoid FrozenInstanceError
         object.__setattr__(self, "_group_names", sorted(group_names))
+        object.__setattr__(self, "last_group_num", last_group_num)
         object.__setattr__(self, "_groups_by_name", groups_by_name)
         object.__setattr__(self, "_xmp_files", xmp_files)
         object.__setattr__(self, "_xmp_files_in_photos_dir", xmp_files_in_photos_dir)
@@ -80,7 +84,7 @@ class CollectionFiles:
                                 direntry: os.DirEntry[str]) -> CollectionFile:
         file_type = get_file_type(direntry)
         edit_num_str = self._filename_parser.get_edit_num(direntry)
-        directory_type = self._directories.get_directory_type(direntry)
+        directory_type = self.directories.get_directory_type(direntry)
         return CollectionFile(
             direntry=direntry,
             path=direntry.path,
@@ -92,14 +96,25 @@ class CollectionFiles:
         )
 
     @property
+    def group_count(self) -> int:
+        return len(self._group_names)
+
+    @property
     def group_names(self) -> Iterable[str]:
         return self._group_names
+
+    @property
+    def last_group(self) -> FileGroup | None:
+        return self.get_group_by_num(self.last_group_num)
 
     def get_group_num(self, group_name: str) -> int | None:
         return self._filename_parser.get_file_num(group_name)
 
-    def get_group(self, group_name: str) -> FileGroup:
-        return self._groups_by_name[group_name]
+    def get_group_by_name(self, group_name: str) -> FileGroup | None:
+        return self._groups_by_name.get(group_name)
+
+    def get_group_by_num(self, group_num: int) -> FileGroup | None:
+        return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
 
     def get_files_by_type(self, file_type: FileType) -> list[CollectionFile]:
         assert file_type == FileType.XMP
