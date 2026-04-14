@@ -100,21 +100,20 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_xmp_same_dir(group: FileGroup) -> None:
-        if (FileType.JPEG not in group.file_types
-                or FileType.XMP not in group.file_types):
+        if FileType.XMP not in group.file_types:
             return
 
-        jpeg_files_by_filename: dict[str, list[CollectionFile]] = defaultdict(list)
+        jpeg_files_by_filename_stem: dict[str, list[CollectionFile]] = defaultdict(list)
         for jpeg_file in group.get_type_files(FileType.JPEG):
-            jpeg_files_by_filename[jpeg_file.filename].append(jpeg_file)
+            jpeg_files_by_filename_stem[jpeg_file.filename_stem].append(jpeg_file)
 
-        invalid_xmp_files: list[CollectionFile] = []
-        for xmp_file in group.get_type_files(FileType.XMP):
-            jpeg_files = jpeg_files_by_filename[xmp_file.filename]
-            if (not any(
-                    in_same_dir(xmp_file.direntry, jpeg_file.direntry)
-                    for jpeg_file in jpeg_files)):
-                invalid_xmp_files.append(xmp_file)
+        invalid_xmp_files = [
+            xmp_file for xmp_file in group.get_type_files(FileType.XMP)
+            if not any(
+                in_same_dir(xmp_file.direntry, jpeg_file.direntry)
+                for jpeg_file in jpeg_files_by_filename_stem[xmp_file.filename_stem]
+            )
+        ]
 
         if invalid_xmp_files:
             log_file_path(_LOG,

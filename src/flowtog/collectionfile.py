@@ -14,6 +14,7 @@ class CollectionFile(os.PathLike[str]):
     direntry: os.DirEntry[str]
     path: str
     filename: str
+    filename_stem: str
     file_type: FileType
     directory_type: DirectoryType
     is_edit: bool

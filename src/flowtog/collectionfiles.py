@@ -9,7 +9,7 @@ from flowtog.collectionfile import CollectionFile
 from flowtog.collectionfilenameparser import CollectionFilenameParser
 from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType, get_file_type
-from flowtog.path_utils import get_filename
+from flowtog.path_utils import get_filename, get_filename_stem
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
@@ -89,6 +89,7 @@ class CollectionFiles:
             direntry=direntry,
             path=direntry.path,
             filename=get_filename(direntry),
+            filename_stem=get_filename_stem(direntry),
             file_type=file_type,
             directory_type=directory_type,
             is_edit=bool(edit_num_str),
