@@ -137,8 +137,6 @@ def _find_dcf_media() -> list[Path]:
 
 
 def _scan_dcf_media(state: _ImportState, dcf_media: Path) -> None:
-    # TODO: Log partition ID
-
     dcim_dir = dcf_media / _DCIM_DIR_NAME
 
     # Path.iterdir() yields objects in arbitrary order so we need to sort them
