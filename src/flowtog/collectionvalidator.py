@@ -40,6 +40,7 @@ class CollectionValidator:
 
         for group_name in self._files.group_names:
             file_group = self._files.get_group_by_name(group_name)
+            assert file_group
 
             self._validate_file_number(missing_range_coroutine, file_group)
             self._validate_group(file_group)
@@ -59,6 +60,9 @@ class CollectionValidator:
             else:
                 self._validate_allowed_dirs(group, file_type, files)
                 self._validate_multiple(group, file_type, list(files))
+
+        self._validate_missing(group)
+        self._validate_xmp_same_dir(group)
 
     @staticmethod
     def _validate_other_files(group: FileGroup, files: Iterable[CollectionFile]) -> None:
