@@ -166,7 +166,7 @@ class CollectionValidator:
         current = sorted_files[-1]
         if current.directory_type != DirectoryType.Photos:
             log_file_path(_LOG,
-                logging.ERROR,
+                          logging.ERROR,
                           f'{group.group_name}: Current edit not in "{self._collection.photos_dir}" directory',
                           current)
 
