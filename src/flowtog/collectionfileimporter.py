@@ -32,7 +32,7 @@ class _ImportState:
         self.collection_files = collection_files
         self.metadata_session = metadata_session
         self.filename_format = collection_files.collection.filename_format
-        self.unsorted_dir = collection_files.directories.get_directory_path(DirectoryType.Unsorted)
+        self.unsorted_dir = collection_files.directories.get_directory_path(DirectoryType.UNSORTED)
         self.last_raw_time_stamp = (_get_time_stamp(metadata_session, last_raw_file)
                                     if (last_raw_file := _get_last_raw_file(collection_files))
                                     else None)
@@ -271,8 +271,8 @@ def _get_time_stamp(metadata_session: MetadataSession, file: Path) -> datetime |
 
 
 def _get_date_time_original(metadata: dict[MetadataType, str | list[str]]) -> datetime | None:
-    date_time_original = metadata.get(MetadataType.DateTimeOriginal)
-    offset_time_original = metadata.get(MetadataType.OffsetTimeOriginal)
+    date_time_original = metadata.get(MetadataType.DATE_TIME_ORIGINAL)
+    offset_time_original = metadata.get(MetadataType.OFFSET_TIME_ORIGINAL)
     if isinstance(date_time_original, str) and isinstance(offset_time_original, str):
         return datetime.strptime(f"{date_time_original} {offset_time_original}", "%Y:%m:%d %H:%M:%S %z")
     return None

@@ -11,13 +11,13 @@ if TYPE_CHECKING:
 
 
 class DirectoryType(Enum):
-    Originals = "originals_dir"
-    Photos = "photos_dir"
-    PreviousEdits = "previous_edits_dir"
-    Raw = "raw_dir"
-    Rejected = "rejected_dir"
-    Unsorted = "unsorted_dir"
-    Other = None
+    ORIGINALS = "originals_dir"
+    PHOTOS = "photos_dir"
+    PREVIOUS_EDITS = "previous_edits_dir"
+    RAW = "raw_dir"
+    REJECTED = "rejected_dir"
+    UNSORTED = "unsorted_dir"
+    OTHER = None
 
 
 @dataclass(frozen=True)
@@ -63,4 +63,4 @@ class CollectionDirectories:
         # The file path should already be absolute because we only used absolute paths with os.scandir()
         # so we only need to normalize case for comparison
         file_dir = os.path.normcase(get_directory(file))
-        return self._type_by_normalized_directory.get(file_dir, DirectoryType.Other)
+        return self._type_by_normalized_directory.get(file_dir, DirectoryType.OTHER)

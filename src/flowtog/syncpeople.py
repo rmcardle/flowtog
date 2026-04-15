@@ -25,7 +25,7 @@ _KEYWORD_PREFIX: Final[str] = (
 
 
 def sync_people(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
-    if not (xmp_files := collection_files.get_files_by_directory_and_type(DirectoryType.Photos, FileType.XMP)):
+    if not (xmp_files := collection_files.get_files_by_directory_and_type(DirectoryType.PHOTOS, FileType.XMP)):
         _LOG.warning("No XMP files found in Photos directory")
         return
 
@@ -36,10 +36,10 @@ def sync_people(collection_files: CollectionFiles, collection_metadata: Collecti
 def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMetadata) -> None:
     current_metadata_by_type = collection_metadata.get_metadata(file)
 
-    current_people = _get_set_from_metadata_by_type(current_metadata_by_type, MetadataType.PersonInImage)
-    current_flat_keywords = _get_set_from_metadata_by_type(current_metadata_by_type, MetadataType.Subject)
+    current_people = _get_set_from_metadata_by_type(current_metadata_by_type, MetadataType.PERSON_IN_IMAGE)
+    current_flat_keywords = _get_set_from_metadata_by_type(current_metadata_by_type, MetadataType.SUBJECT)
     current_hierarchical_keywords = _get_set_from_metadata_by_type(current_metadata_by_type,
-                                                                   MetadataType.HierarchicalSubject)
+                                                                   MetadataType.HIERARCHICAL_SUBJECT)
 
     new_hierarchical_keywords, new_flat_keywords = _calculate_new_keywords(current_people,
                                                                            current_flat_keywords,
@@ -47,9 +47,9 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
 
     new_metadata_by_type: dict[MetadataType, str | list[str]] = {}
     if current_hierarchical_keywords != new_hierarchical_keywords:
-        new_metadata_by_type[MetadataType.HierarchicalSubject] = list(new_hierarchical_keywords)
+        new_metadata_by_type[MetadataType.HIERARCHICAL_SUBJECT] = list(new_hierarchical_keywords)
     if current_flat_keywords != new_flat_keywords:
-        new_metadata_by_type[MetadataType.Subject] = list(new_flat_keywords)
+        new_metadata_by_type[MetadataType.SUBJECT] = list(new_flat_keywords)
 
     if not new_metadata_by_type:
         return

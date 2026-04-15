@@ -2,9 +2,9 @@ from enum import Enum
 
 
 class MetadataType(Enum):
-    DateTimeOriginal = "ExifIFD:DateTimeOriginal"
-    OffsetTimeOriginal = "ExifIFD:OffsetTimeOriginal"
-    Rating = "XMP-xmp:Rating"
-    PersonInImage = "XMP-iptcExt:PersonInImage"
-    Subject = "XMP-dc:Subject"
-    HierarchicalSubject = "XMP-lr:hierarchicalSubject"
+    DATE_TIME_ORIGINAL = "ExifIFD:DateTimeOriginal"
+    OFFSET_TIME_ORIGINAL = "ExifIFD:OffsetTimeOriginal"
+    RATING = "XMP-xmp:Rating"
+    PERSON_IN_IMAGE = "XMP-iptcExt:PersonInImage"
+    SUBJECT = "XMP-dc:Subject"
+    HIERARCHICAL_SUBJECT = "XMP-lr:hierarchicalSubject"

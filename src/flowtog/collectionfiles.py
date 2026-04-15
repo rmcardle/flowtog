@@ -58,9 +58,9 @@ class CollectionFiles:
                 file = self._create_collection_file(directory_entry)
                 files_by_group_name[group_name].append(file)
                 if file.file_type == FileType.XMP:
-                    if file.directory_type in [DirectoryType.Unsorted, DirectoryType.Rejected]:
+                    if file.directory_type in [DirectoryType.UNSORTED, DirectoryType.REJECTED]:
                         xmp_files.append(file)
-                    if file.directory_type == DirectoryType.Photos:
+                    if file.directory_type == DirectoryType.PHOTOS:
                         xmp_files_in_photos_dir.append(file)
 
         groups_by_name: dict[str, FileGroup] = {}
@@ -124,7 +124,7 @@ class CollectionFiles:
     def get_files_by_directory_and_type(self,
                                         directory_type: DirectoryType,
                                         file_type: FileType) -> list[CollectionFile]:
-        assert directory_type == DirectoryType.Photos
+        assert directory_type == DirectoryType.PHOTOS
         assert file_type == FileType.XMP
         return self._xmp_files_in_photos_dir
 

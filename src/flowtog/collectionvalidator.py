@@ -55,7 +55,7 @@ class CollectionValidator:
             files = group.get_type_files(file_type)
             if file_type == FileType.JPEG and any(f.is_edit for f in files):
                 self._validate_edits(group, files)
-            elif file_type == FileType.Other:
+            elif file_type == FileType.OTHER:
                 self._validate_other_files(group, files)
             else:
                 self._validate_allowed_dirs(group, file_type, files)
@@ -82,7 +82,7 @@ class CollectionValidator:
             if file_type == FileType.JPEG \
                     and (rating := self._collection_metadata.get_rating(file)) \
                     and rating >= self._collection.selected_rating \
-                    and file.directory_type in [DirectoryType.Unsorted, DirectoryType.Rejected]:
+                    and file.directory_type in [DirectoryType.UNSORTED, DirectoryType.REJECTED]:
                 log_file_path(_LOG,
                               logging.WARNING,
                               f"{file_type.value} file with rating {self._collection.selected_rating} or higher "
@@ -157,21 +157,21 @@ class CollectionValidator:
         original = sorted_files[0]
         if original.edit_num != 0 or original.is_edit:
             log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Missing original for edit", original)
-        elif original.directory_type != DirectoryType.Originals:
+        elif original.directory_type != DirectoryType.ORIGINALS:
             log_file_path(_LOG,
                           logging.ERROR,
                           f'{group.group_name}: Original not in "{self._collection.originals_dir}" directory',
                           original)
 
         current = sorted_files[-1]
-        if current.directory_type != DirectoryType.Photos:
+        if current.directory_type != DirectoryType.PHOTOS:
             log_file_path(_LOG,
                           logging.ERROR,
                           f'{group.group_name}: Current edit not in "{self._collection.photos_dir}" directory',
                           current)
 
         for previous_edit in sorted_files[1:-1]:
-            if previous_edit.directory_type != DirectoryType.PreviousEdits:
+            if previous_edit.directory_type != DirectoryType.PREVIOUS_EDITS:
                 log_file_path(_LOG,
                               logging.ERROR,
                               f'{group.group_name}: Previous edit not in '
@@ -182,20 +182,20 @@ class CollectionValidator:
 def _get_file_type_allowed_dir_types() -> dict[FileType, list[DirectoryType]]:
     return {
         FileType.RAW:  [
-            DirectoryType.Rejected,
-            DirectoryType.Raw,
-            DirectoryType.Unsorted,
+            DirectoryType.REJECTED,
+            DirectoryType.RAW,
+            DirectoryType.UNSORTED,
         ],
         FileType.JPEG: [
-            DirectoryType.Originals,
-            DirectoryType.Photos,
-            DirectoryType.PreviousEdits,
-            DirectoryType.Rejected,
-            DirectoryType.Unsorted,
+            DirectoryType.ORIGINALS,
+            DirectoryType.PHOTOS,
+            DirectoryType.PREVIOUS_EDITS,
+            DirectoryType.REJECTED,
+            DirectoryType.UNSORTED,
         ],
         FileType.XMP:  [
-            DirectoryType.Rejected,
-            DirectoryType.Photos,
-            DirectoryType.Unsorted,
+            DirectoryType.REJECTED,
+            DirectoryType.PHOTOS,
+            DirectoryType.UNSORTED,
         ],
     }

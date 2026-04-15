@@ -35,7 +35,7 @@ class CollectionMetadata:
     def get_rating(self, file: CollectionFile) -> int | None:
         if not (xmp_path := self._get_xmp_path(file)):
             return None
-        if not (rating := self._metadata_session.get_metadata_by_type(xmp_path, MetadataType.Rating)) or \
+        if not (rating := self._metadata_session.get_metadata_by_type(xmp_path, MetadataType.RATING)) or \
            not isinstance(rating, str):
             return None
         return int(rating)
