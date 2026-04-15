@@ -58,12 +58,14 @@ class Config:
     people: Mapping[str, Person] = field(default_factory=dict[str, Person])
 
     @classmethod
-    def load(cls, config_file_path: str | None) -> Self:
-        if config_file_path is None or not os.path.isfile(config_file_path):
-            return cls(collection={
+    def load(cls, config_file_path: str) -> Self:
+        if os.path.isfile(config_file_path):
+            config = Binder(cls).parse_toml(config_file_path)
+        else:
+            config = cls(collection={
                 "DSC": CollectionConfig(),
             })
-        config = Binder(cls).parse_toml(config_file_path)
+
         config._normalize_paths(os.path.dirname(config_file_path))  # noqa: SLF001
         return config
 
