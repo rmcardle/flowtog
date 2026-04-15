@@ -5,10 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "flowtog"
 version = "1.0.0"
-description = ""
+description = "A workflow tool for photographers."
 authors = [
     { name="Riley McArdle", email="riley@mcardle.org" }
 ]
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.14"
 dependencies = [
     "dataclass-binder>=0.3.5",
