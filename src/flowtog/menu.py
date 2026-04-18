@@ -58,6 +58,7 @@ def get_menu_choice(items: list[str | None],
 
     for item in display_items:
         print(f"  {item}")
+    print()
 
     return get_choice(choices,
                       prompt=prompt,
@@ -101,14 +102,10 @@ def _show_prompt(choices: list[str],
     if not (prompt or prompt_show_choices):
         return
 
-    print()
-
     if prompt:
         print(prompt, end=" ")
 
     if prompt_show_choices:
-        if choices != ["y", "n"]:
-            choices = sorted(choices)
         if include_escape:
             choices.append("Esc")
         print(f"({','.join(choices)})?", end=" ")
