@@ -10,6 +10,7 @@ from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
 from flowtog.config import Config
+from flowtog.collectiondirectorycreator import create_directories
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.syncpeople import sync_people
@@ -40,6 +41,7 @@ def _main(args: argparse.Namespace) -> None:
 def _show_main_menu() -> bool:
     match get_menu_choice(
         [
+            "_Create directories",
             "_Import photos from media",
             "_Move sorted photos",
             "_Sync people to keywords",
@@ -50,6 +52,8 @@ def _show_main_menu() -> bool:
         title="Main Menu",
         escape_choice="x",
     ):
+        case "c":
+            _create_directories()
         case "i":
             _import_files()
         case "m":
@@ -62,6 +66,13 @@ def _show_main_menu() -> bool:
             return False
 
     return True
+
+
+def _create_directories() -> None:
+    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    collection = config.collection["DSC"]
+
+    create_directories(collection)
 
 
 def _import_files() -> None:

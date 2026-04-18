@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import Iterator, TYPE_CHECKING, Self
 
 from flowtog.path_utils import PathArg, get_directory
 
@@ -47,6 +47,9 @@ class CollectionDirectories:
             type_by_normalized_directory[os.path.normcase(directory)] = directory_type
         # Use __setattr__ to avoid FrozenInstanceError
         object.__setattr__(self, "_type_by_normalized_directory", type_by_normalized_directory)
+
+    def __iter__(self) -> Iterator[Path]:
+        return (Path(d) for d in self._directories_by_type.values())
 
     @property
     def valid_directories(self) -> list[str]:
