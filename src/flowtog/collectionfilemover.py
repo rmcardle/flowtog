@@ -19,7 +19,10 @@ if TYPE_CHECKING:
 _LOG = logging.getLogger(__name__)
 
 
-def move_sorted_files(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
+def move_sorted_files(collection_files: CollectionFiles,
+                      collection_metadata: CollectionMetadata,
+                      *,
+                      last_group: FileGroup | None = None) -> None:
     directories = collection_files.directories
     if _has_missing_directories(directories[DirectoryType.REJECTED],
                                 directories[DirectoryType.RAW],
@@ -27,6 +30,9 @@ def move_sorted_files(collection_files: CollectionFiles, collection_metadata: Co
         return
 
     for group in collection_files.groups_in_unsorted_dir:
+        if last_group and group.group_num > last_group.group_num:
+            return
+
         if _has_multiple_files(group):
             continue
 

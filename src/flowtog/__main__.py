@@ -1,16 +1,17 @@
 import argparse
 import logging
 import sys
+from enum import Enum, auto
 from typing import Final
 
 from flowtog import __version__
+from flowtog.collectiondirectorycreator import create_directories
 from flowtog.collectionfileimporter import import_files
 from flowtog.collectionfilemover import move_sorted_files, move_to_rejected
 from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
 from flowtog.config import Config
-from flowtog.collectiondirectorycreator import create_directories
 from flowtog.filegroup import FileGroup
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
@@ -93,10 +94,15 @@ def _move_sorted_files() -> None:
     collection = config.collection["DSC"]
     collection_files = CollectionFiles.from_collection(collection)
 
+    if (last_group := _prompt_for_group(collection_files, allow_all=True)) == _GroupSelection.NONE:
+        return
+
     with MetadataSession() as metadata_session:
         collection_metadata = CollectionMetadata.from_collection_files(collection_files, metadata_session)
 
-        move_sorted_files(collection_files, collection_metadata)
+        move_sorted_files(collection_files,
+                          collection_metadata,
+                          last_group=None if last_group == _GroupSelection.ALL else last_group)
 
 
 def _move_to_rejected() -> None:
@@ -104,10 +110,13 @@ def _move_to_rejected() -> None:
     collection = config.collection["DSC"]
     collection_files = CollectionFiles.from_collection(collection)
 
-    if not (group := _prompt_for_group(collection_files)):
-        return
+    while True:
+        group = _prompt_for_group(collection_files)
+        if not isinstance(group, FileGroup):
+            return
 
-    move_to_rejected(group, collection)
+        move_to_rejected(group, collection)
+        print()  # noqa: T201 print
 
 
 def _sync_people() -> None:
@@ -133,18 +142,29 @@ def _validate_collection() -> None:
         validator.validate()
 
 
-def _prompt_for_group(collection_files: CollectionFiles) -> FileGroup | None:
-    group: FileGroup | None = None
-    while group is None:
-        if not (group_num := input("Group number (Enter to cancel): ")):
-            return None
+class _GroupSelection(Enum):
+    ALL = auto()
+    NONE = auto()
+
+
+def _prompt_for_group(collection_files: CollectionFiles,
+                      *,
+                      allow_all: bool = False) -> FileGroup | _GroupSelection:
+    group: FileGroup | _GroupSelection = _GroupSelection.NONE
+    while group == _GroupSelection.NONE:
+        prompt = 'Group number or "all" (Enter to cancel): ' if allow_all else "Group number (Enter to cancel): "
+        if not (group_num := input(prompt)):
+            return _GroupSelection.NONE
+
+        if allow_all and group_num.lower() in ("a", "all"):
+            return _GroupSelection.ALL
 
         try:
             group_num = int(group_num)
         except ValueError:
             continue
 
-        group = collection_files.get_group_by_num(group_num)
+        group = collection_files.get_group_by_num(group_num) or _GroupSelection.NONE
 
     return group
 
