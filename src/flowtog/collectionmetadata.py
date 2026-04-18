@@ -1,3 +1,4 @@
+from argparse import ArgumentTypeError
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self
 
@@ -29,16 +30,18 @@ class CollectionMetadata:
     def _load_metadata(self) -> None:
         self._metadata_session.load_metadata(self._files.get_files_by_type(FileType.XMP))
 
-    def get_metadata(self, file: CollectionFile) -> dict[MetadataType, str | list[str]]:
+    def get_metadata(self, file: CollectionFile) -> dict[MetadataType, str | int | list[str]]:
         return self._metadata_session.get_metadata(file)
 
     def get_rating(self, file: CollectionFile) -> int | None:
-        if not (xmp_path := self._get_xmp_path(file)):
+        if not ((xmp_path := self._get_xmp_path(file))
+                and (rating := self._metadata_session.get_metadata_by_type(xmp_path, MetadataType.RATING))):
             return None
-        if not (rating := self._metadata_session.get_metadata_by_type(xmp_path, MetadataType.RATING)) or \
-           not isinstance(rating, str):
-            return None
-        return int(rating)
+        if isinstance(rating, int):
+            return rating
+        if isinstance(rating, str):
+            return int(rating)
+        raise ArgumentTypeError
 
     def set_metadata(self, file: CollectionFile, metadata_by_type: dict[MetadataType, str | list[str]]) -> None:
         self._metadata_session.set_metadata(file, metadata_by_type)

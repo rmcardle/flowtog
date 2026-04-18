@@ -1,7 +1,8 @@
 import logging
 import os
+from argparse import ArgumentTypeError
 from contextlib import AbstractContextManager, suppress
-from typing import TYPE_CHECKING, Final, Self
+from typing import TYPE_CHECKING, Any, Final, Self
 
 from exiftool import ExifTool, ExifToolHelper  # pyright: ignore [reportMissingTypeStubs]
 
@@ -23,7 +24,7 @@ _EXIFTOOL_SOURCE_FILE_TAG: Final[str] = "SourceFile"
 
 class MetadataSession(AbstractContextManager["MetadataSession"]):
     _exif_tool_helper: ExifToolHelper
-    _metadata_by_type_by_path: dict[str, dict[MetadataType, str | list[str]]]
+    _metadata_by_type_by_path: dict[str, dict[MetadataType, str | int | list[str]]]
 
     def __init__(self) -> None:
         self._exif_tool_helper = ExifToolHelper(common_args=_EXIFTOOL_ARGS)
@@ -45,16 +46,18 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
         if paths_to_load := {path for path in file_system_paths if path not in self._metadata_by_type_by_path}:
             self._read_metadata(paths_to_load)
 
-    def get_metadata(self, path: str | os.PathLike[str]) -> dict[MetadataType, str | list[str]]:
+    def get_metadata(self, path: str | os.PathLike[str]) -> dict[MetadataType, str | int | list[str]]:
         self.load_metadata([path])
         fspath = os.fspath(path) if isinstance(path, os.PathLike) else path
         return self._metadata_by_type_by_path[fspath]
 
-    def get_metadata_by_type(self, path: str | os.PathLike[str], metadata_type: MetadataType) -> str | list[str] | None:
+    def get_metadata_by_type(self,
+                             path: str | os.PathLike[str],
+                             metadata_type: MetadataType) -> str | int | list[str] | None:
         return self.get_metadata(path).get(metadata_type)
 
     def _read_metadata(self, paths: str | Iterable[str]) -> None:
-        tags_list: list[dict[str, str | list[str]]] = self._exif_tool_helper.get_tags(paths, _get_tag_names())  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+        tags_list: list[dict[str, Any]] = self._exif_tool_helper.get_tags(paths, _get_tag_names())  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
         for tags_by_tag_name in tags_list:
             source_file = tags_by_tag_name.get(_EXIFTOOL_SOURCE_FILE_TAG)
             assert isinstance(source_file, str)
@@ -72,7 +75,8 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
         # _LOG.debug(f"{self.set_metadata.__qualname__}(): Calling ExifToolHelper.execute() with arguments: " +
         #            " ".join(args))
 
-        self._exif_tool_helper.execute(*args)
+        # TODO: Enable
+        # self._exif_tool_helper.execute(*args)
 
 
 def validate_exiftool() -> bool:
@@ -89,9 +93,17 @@ def _get_tag_names() -> list[str]:
     return [t.value for t in MetadataType]
 
 
-def _get_metadata_by_type(tags: Mapping[str, str | list[str]]) -> dict[MetadataType, str | list[str]]:
-    metadata_by_type: dict[MetadataType, str | list[str]] = {}
+def _get_metadata_by_type(tags: Mapping[str, Any]) -> dict[MetadataType, str | int | list[str]]:
+    metadata_by_type: dict[MetadataType, str | int | list[str]] = {}
+
     for tag, value in tags.items():
+        if not (isinstance(value, str | int)
+                or ((isinstance(value, list))
+                    and all(isinstance(i, str) for i in value))):  # pyright: ignore [reportUnknownVariableType]\
+            raise ArgumentTypeError
+
+        # Ignore tags that don't have a corresponding MetadataType
         with suppress(ValueError):
             metadata_by_type[MetadataType(tag)] = value
+
     return metadata_by_type
