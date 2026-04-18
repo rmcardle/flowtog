@@ -31,12 +31,13 @@ def _main(args: argparse.Namespace) -> None:
 
     _LOG.info(f"Root directory: {_ROOT_DIR}")
 
-    _show_main_menu()
+    while _show_main_menu():
+        pass
 
     _LOG.debug(f"Flowtog {__version__} exiting")
 
 
-def _show_main_menu() -> None:
+def _show_main_menu() -> bool:
     match get_menu_choice(
         [
             "_Import photos from media",
@@ -58,9 +59,9 @@ def _show_main_menu() -> None:
         case "v":
             _validate_collection()
         case _:
-            return
+            return False
 
-    _show_main_menu()
+    return True
 
 
 def _import_files() -> None:
