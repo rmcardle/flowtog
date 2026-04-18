@@ -96,7 +96,7 @@ def _get_last_raw_file(collection_files: CollectionFiles) -> Path | None:
         # If the collection is empty, we can return None, otherwise there's a problem
         assert collection_files.group_count == 0
         return None
-    raw_files = last_group.get_type_files(FileType.RAW)
+    raw_files = last_group.files_by_type[FileType.RAW]
     if len(raw_files) != 1:
         raise AssertionError
     return Path(raw_files[0].path)

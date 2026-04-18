@@ -54,7 +54,7 @@ class CollectionValidator:
 
     def _validate_group(self, group: FileGroup) -> None:
         for file_type in group.file_types:
-            files = group.get_type_files(file_type)
+            files = group.files_by_type[file_type]
             if file_type == FileType.JPEG and group.has_edits:
                 self._validate_edits(group, files)
             elif file_type == FileType.OTHER:
@@ -98,10 +98,10 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_missing(group: FileGroup) -> None:
-        if len(group.get_type_files(FileType.RAW)) < 1:
+        if len(group.files_by_type[FileType.RAW]) < 1:
             _LOG.error(f"{group.group_name}: Missing RAW file")
 
-        if len(group.get_type_files(FileType.JPEG)) < 1:
+        if len(group.files_by_type[FileType.JPEG]) < 1:
             _LOG.error(f"{group.group_name}: Missing JPEG file")
 
     @staticmethod
@@ -110,11 +110,11 @@ class CollectionValidator:
             return
 
         jpeg_files_by_filename_stem: dict[str, list[CollectionFile]] = defaultdict(list)
-        for jpeg_file in group.get_type_files(FileType.JPEG):
+        for jpeg_file in group.files_by_type[FileType.JPEG]:
             jpeg_files_by_filename_stem[jpeg_file.filename_stem].append(jpeg_file)
 
         invalid_xmp_files = [
-            xmp_file for xmp_file in group.get_type_files(FileType.XMP)
+            xmp_file for xmp_file in group.files_by_type[FileType.XMP]
             if not any(
                 in_same_dir(xmp_file.direntry, jpeg_file.direntry)
                 for jpeg_file in jpeg_files_by_filename_stem[xmp_file.filename_stem]
