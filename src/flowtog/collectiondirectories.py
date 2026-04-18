@@ -51,6 +51,9 @@ class CollectionDirectories:
     def __iter__(self) -> Iterator[Path]:
         return (Path(d) for d in self._directories_by_type.values())
 
+    def __getitem__(self, directory_type: DirectoryType) -> Path:
+        return Path(self._directories_by_type[directory_type])
+
     @property
     def valid_directories(self) -> list[str]:
         return [d for d in self._dirs if os.path.isdir(d)]
@@ -58,9 +61,6 @@ class CollectionDirectories:
     @property
     def _dirs(self) -> list[str]:
         return list(self._directories_by_type.values())
-
-    def get_directory_path(self, directory_type: DirectoryType) -> Path:
-        return Path(self._directories_by_type[directory_type])
 
     def get_directory_type(self, file: PathArg) -> DirectoryType:
         # The file path should already be absolute because we only used absolute paths with os.scandir()

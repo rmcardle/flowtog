@@ -5,12 +5,13 @@ from typing import Final
 
 from flowtog import __version__
 from flowtog.collectionfileimporter import import_files
-from flowtog.collectionfilemover import move_sorted_files
+from flowtog.collectionfilemover import move_sorted_files, move_to_rejected
 from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
 from flowtog.config import Config
 from flowtog.collectiondirectorycreator import create_directories
+from flowtog.filegroup import FileGroup
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.syncpeople import sync_people
@@ -44,6 +45,7 @@ def _show_main_menu() -> bool:
             "_Create directories",
             "_Import photos from media",
             "_Move sorted photos",
+            "Move selected photo to _rejected",
             "_Sync people to keywords",
             "_Validate collection",
             None,
@@ -58,6 +60,8 @@ def _show_main_menu() -> bool:
             _import_files()
         case "m":
             _move_sorted_files()
+        case "r":
+            _move_to_rejected()
         case "s":
             _sync_people()
         case "v":
@@ -95,6 +99,17 @@ def _move_sorted_files() -> None:
         move_sorted_files(collection_files, collection_metadata)
 
 
+def _move_to_rejected() -> None:
+    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    collection = config.collection["DSC"]
+    collection_files = CollectionFiles.from_collection(collection)
+
+    if not (group := _prompt_for_group(collection_files)):
+        return
+
+    move_to_rejected(group, collection)
+
+
 def _sync_people() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
     collection = config.collection["DSC"]
@@ -116,6 +131,22 @@ def _validate_collection() -> None:
 
         validator = CollectionValidator.from_collection_files(collection_files, collection_metadata)
         validator.validate()
+
+
+def _prompt_for_group(collection_files: CollectionFiles) -> FileGroup | None:
+    group: FileGroup | None = None
+    while group is None:
+        if not (group_num := input("Group number (Enter to cancel): ")):
+            return None
+
+        try:
+            group_num = int(group_num)
+        except ValueError:
+            continue
+
+        group = collection_files.get_group_by_num(group_num)
+
+    return group
 
 
 def _configure_logger(args: argparse.Namespace) -> None:

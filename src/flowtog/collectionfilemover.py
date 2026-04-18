@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from flowtog.collectiondirectories import DirectoryType
+from flowtog.collectiondirectories import CollectionDirectories, DirectoryType
 from flowtog.filetype import FileType
 from flowtog.log_utils import log_file_path
 
@@ -13,30 +13,74 @@ if TYPE_CHECKING:
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.collectionmetadata import CollectionMetadata
+    from flowtog.config import CollectionConfig
     from flowtog.filegroup import FileGroup
 
 _LOG = logging.getLogger(__name__)
 
 
-class _MoveState:
-    def __init__(self, collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
-        self.collection_metadata = collection_metadata
-        self.selected_rating = collection_files.collection.selected_rating
-        self.rejected_dir = collection_files.directories.get_directory_path(DirectoryType.REJECTED)
-        self.raw_dir = collection_files.directories.get_directory_path(DirectoryType.RAW)
-        self.photos_dir = collection_files.directories.get_directory_path(DirectoryType.PHOTOS)
-
-
 def move_sorted_files(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
-    state = _MoveState(collection_files, collection_metadata)
-
-    for directory in (state.rejected_dir, state.raw_dir, state.photos_dir):
-        if not directory.exists():
-            _LOG.error(f"{directory} does not exist")
-            return
+    directories = collection_files.directories
+    if _has_missing_directories(directories[DirectoryType.REJECTED],
+                                directories[DirectoryType.RAW],
+                                directories[DirectoryType.PHOTOS]):
+        return
 
     for group in collection_files.groups_in_unsorted_dir:
-        _move_sorted_group(state, group)
+        if _has_multiple_files(group):
+            continue
+
+        is_selected = _is_selected(group, collection_metadata, collection_files.collection.selected_rating)
+        _move_sorted_group(group, directories, is_selected=is_selected)
+
+
+def move_to_rejected(group: FileGroup, collection: CollectionConfig) -> None:
+    directories = CollectionDirectories.from_collection(collection)
+    if _has_missing_directories(directories[DirectoryType.REJECTED]):
+        return
+
+    _move_sorted_group(group, directories, is_selected=False)
+
+
+def _has_missing_directories(*directories: Path) -> bool:
+    has_missing_directories = False
+
+    for directory in directories:
+        if not directory.is_dir():
+            _LOG.error(f"{directory} does not exist")
+            has_missing_directories = True
+
+    return has_missing_directories
+
+
+def _has_multiple_files(group: FileGroup) -> bool:
+    has_multiple = False
+
+    for file_type in group.file_types:
+        if FileType.JPEG and group.has_edits:
+            continue
+
+        files = group.get_type_files(file_type)
+        if len(files) > 1:
+            log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
+            has_multiple = True
+
+    return has_multiple
+
+
+def _is_selected(group: FileGroup, collection_metadata: CollectionMetadata, selected_rating: int) -> bool:
+    if FileType.XMP in group.file_types:
+        if not (xmp_files := group.get_type_files(FileType.XMP)):
+            raise AssertionError
+
+        if len(xmp_files) != 1:
+            raise AssertionError
+
+        if ((rating := collection_metadata.get_rating(xmp_files[0]))
+                and rating >= selected_rating):
+            return True
+
+    return False
 
 
 @dataclass(frozen=True)
@@ -45,29 +89,26 @@ class CollectionFileMoveRecord:
     destination_file: Path
 
 
-def _move_sorted_group(state: _MoveState, group: FileGroup) -> None:
-    if _check_multiple_files(group):
-        return
-
+def _move_sorted_group(group: FileGroup, directories: CollectionDirectories, *, is_selected: bool) -> None:
     moves: list[CollectionFileMoveRecord] = []
 
-    if not _is_selected(state, group):
-        moves += _get_moves(group.files, state.rejected_dir)
+    if not is_selected:
+        moves += _get_moves(group.files, directories[DirectoryType.REJECTED])
     else:
         if FileType.OTHER in group.file_types:
             files = group.get_type_files(FileType.OTHER)
             log_file_path(_LOG, logging.ERROR, f"Ignoring {group.group_name} - Group has other files", files)
             return
 
-        moves += _get_moves(group.get_type_files(FileType.RAW), state.raw_dir)
+        moves += _get_moves(group.get_type_files(FileType.RAW), directories[DirectoryType.RAW])
 
         if group.has_edits:
-            moves += _get_edit_moves(state, group)
+            moves += _get_edit_moves(group, directories)
         else:
             # Move XMP files first so that any programs watching the photos dir can read the
             # XMP file as soon as the JPEG file appears
-            moves += _get_moves(group.get_type_files(FileType.XMP), state.photos_dir)
-            moves += _get_moves(group.get_type_files(FileType.JPEG), state.photos_dir)
+            moves += _get_moves(group.get_type_files(FileType.XMP), directories[DirectoryType.PHOTOS])
+            moves += _get_moves(group.get_type_files(FileType.JPEG), directories[DirectoryType.PHOTOS])
 
     if existing_destination_files := [move.destination_file for move in moves if move.destination_file.exists()]:
         log_file_path(
@@ -82,42 +123,15 @@ def _move_sorted_group(state: _MoveState, group: FileGroup) -> None:
         _LOG.info(f"Moving {move.source_file} -> {move.destination_file}")
         move.source_file.rename(move.destination_file)
 
-    # TODO: Remove rating
-
-
-def _check_multiple_files(group: FileGroup) -> bool:
-    has_multiple = False
-    for file_type in group.file_types:
-        if FileType.JPEG and group.has_edits:
-            continue
-        files = group.get_type_files(file_type)
-        if len(files) > 1:
-            log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
-            has_multiple = True
-    return has_multiple
-
-
-def _is_selected(state: _MoveState, group: FileGroup) -> bool:
-    if FileType.XMP in group.file_types:
-        if not (xmp_files := group.get_type_files(FileType.XMP)):
-            raise AssertionError
-
-        if len(xmp_files) != 1:
-            raise AssertionError
-
-        xmp_file = xmp_files[0]
-
-        if ((rating := state.collection_metadata.get_rating(xmp_file))
-                and rating >= state.selected_rating):
-            return True
-
-    return False
+    if is_selected:
+        # TODO: Remove rating
+        pass
 
 
 def _get_moves(files: Iterable[CollectionFile], destination_dir: Path) -> list[CollectionFileMoveRecord]:
     return [CollectionFileMoveRecord(Path(file), destination_dir / file.filename) for file in files]
 
 
-def _get_edit_moves(state: _MoveState, group: FileGroup) -> list[CollectionFileMoveRecord]:
+def _get_edit_moves(group: FileGroup, directories: CollectionDirectories) -> list[CollectionFileMoveRecord]:
     # RAW files are already handled, we only need to handle JPEG and XMP files here
     raise NotImplementedError

@@ -32,7 +32,7 @@ class _ImportState:
         self.collection_files = collection_files
         self.metadata_session = metadata_session
         self.filename_format = collection_files.collection.filename_format
-        self.unsorted_dir = collection_files.directories.get_directory_path(DirectoryType.UNSORTED)
+        self.unsorted_dir = collection_files.directories[DirectoryType.UNSORTED]
         self.last_raw_time_stamp = (_get_time_stamp(metadata_session, last_raw_file)
                                     if (last_raw_file := _get_last_raw_file(collection_files))
                                     else None)
