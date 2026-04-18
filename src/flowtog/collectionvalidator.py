@@ -53,7 +53,7 @@ class CollectionValidator:
     def _validate_group(self, group: FileGroup) -> None:
         for file_type in group.file_types:
             files = group.get_type_files(file_type)
-            if file_type == FileType.JPEG and any(f.is_edit for f in files):
+            if file_type == FileType.JPEG and group.has_edits:
                 self._validate_edits(group, files)
             elif file_type == FileType.OTHER:
                 self._validate_other_files(group, files)
