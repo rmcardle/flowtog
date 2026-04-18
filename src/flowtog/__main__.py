@@ -5,6 +5,7 @@ from typing import Final
 
 from flowtog import __version__
 from flowtog.collectionfileimporter import import_files
+from flowtog.collectionfilemover import move_sorted_files
 from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
@@ -39,6 +40,7 @@ def _show_main_menu() -> None:
     match get_menu_choice(
         [
             "_Import photos from media",
+            "_Move sorted photos",
             "_Sync people to keywords",
             "_Validate collection",
             None,
@@ -49,6 +51,8 @@ def _show_main_menu() -> None:
     ):
         case "i":
             _import_files()
+        case "m":
+            _move_sorted_files()
         case "s":
             _sync_people()
         case "v":
@@ -66,6 +70,17 @@ def _import_files() -> None:
 
     with MetadataSession() as metadata_session:
         import_files(collection_files, metadata_session)
+
+
+def _move_sorted_files() -> None:
+    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    collection = config.collection["DSC"]
+    collection_files = CollectionFiles.from_collection(collection)
+
+    with MetadataSession() as metadata_session:
+        collection_metadata = CollectionMetadata.from_collection_files(collection_files, metadata_session)
+
+        move_sorted_files(collection_files, collection_metadata)
 
 
 def _sync_people() -> None:

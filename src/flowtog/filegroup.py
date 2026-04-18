@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class FileGroup:
     group_name: str
     group_num: int
-    _files: list[CollectionFile]
+    files: list[CollectionFile]
     _files_by_type: dict[FileType, list[CollectionFile]] = field(init=False)
 
     @classmethod
@@ -20,7 +20,7 @@ class FileGroup:
         return cls(
             group_name=group_name,
             group_num=group_num,
-            _files=files,
+            files=files,
         )
 
     def __post_init__(self) -> None:
@@ -28,7 +28,7 @@ class FileGroup:
 
     def _init_files_by_type(self) -> None:
         files_by_type: dict[FileType, list[CollectionFile]] = defaultdict(list)
-        for file in self._files:
+        for file in self.files:
             files_by_type[file.file_type].append(file)
 
         # Use __setattr__ to avoid FrozenInstanceError
@@ -48,4 +48,4 @@ class FileGroup:
 
     @property
     def next_edit_num(self) -> int:
-        return max(e.edit_num for e in self._files) + 1
+        return max(e.edit_num for e in self.files) + 1

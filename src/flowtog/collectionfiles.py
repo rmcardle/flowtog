@@ -28,6 +28,7 @@ class CollectionFiles:
     _group_names: list[str] = field(init=False)
     last_group_num: int = field(init=False)
     _groups_by_name: dict[str, FileGroup] = field(init=False)
+    groups_in_unsorted_dir: list[FileGroup] = field(init=False)
     _xmp_files: list[CollectionFile] = field(init=False)
     _xmp_files_in_photos_dir: list[CollectionFile] = field(init=False)
 
@@ -63,20 +64,35 @@ class CollectionFiles:
                     if file.directory_type == DirectoryType.PHOTOS:
                         xmp_files_in_photos_dir.append(file)
 
-        groups_by_name: dict[str, FileGroup] = {}
+        sorted_group_names = sorted(group_names)
+
         last_group_num = self.collection.start_num - 1
-        for group_name in group_names:
+        groups_by_name: dict[str, FileGroup] = {}
+        groups_in_unsorted_dir: list[FileGroup] = []
+        for group_name in sorted_group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
                 _LOG.error(f"{group_name}: Could not determine file number")
                 continue
-            group = FileGroup.from_files(group_name, group_num, files_by_group_name[group_name])
-            groups_by_name[group_name] = group
+
             last_group_num = max(last_group_num, group_num)
 
+            group_files = files_by_group_name[group_name]
+            group = FileGroup.from_files(group_name, group_num, group_files)
+
+            groups_by_name[group_name] = group
+
+            in_unsorted_dir = True
+            for file in group_files:
+                if file.directory_type != DirectoryType.UNSORTED:
+                    in_unsorted_dir = False
+            if in_unsorted_dir:
+                groups_in_unsorted_dir.append(group)
+
         # Use __setattr__ to avoid FrozenInstanceError
-        object.__setattr__(self, "_group_names", sorted(group_names))
+        object.__setattr__(self, "_group_names", sorted_group_names)
         object.__setattr__(self, "last_group_num", last_group_num)
         object.__setattr__(self, "_groups_by_name", groups_by_name)
+        object.__setattr__(self, "groups_in_unsorted_dir", groups_in_unsorted_dir)
         object.__setattr__(self, "_xmp_files", xmp_files)
         object.__setattr__(self, "_xmp_files_in_photos_dir", xmp_files_in_photos_dir)
 

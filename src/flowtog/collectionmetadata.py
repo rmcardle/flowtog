@@ -44,11 +44,17 @@ class CollectionMetadata:
         self._metadata_session.set_metadata(file, metadata_by_type)
 
     def _get_xmp_path(self, file: CollectionFile) -> str | None:
+        if file.file_type == FileType.XMP:
+            return file.path
+
         assert file.file_type == FileType.JPEG
+
         # TODO: Find a match in CollectionFiles instead of just guessing
         # This way will not work if the extension is not lowercase
         xmp_file_path = get_filename_stem(file) + ".xmp"
+
         for xmp_file in self._files.get_files_by_type(FileType.XMP):
             if xmp_file.path == xmp_file_path:
                 return xmp_file.path
+
         return None
