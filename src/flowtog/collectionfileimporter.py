@@ -270,7 +270,7 @@ def _get_time_stamp(metadata_session: MetadataSession, file: Path) -> datetime |
     return _get_date_time_original(metadata) if (metadata := metadata_session.get_metadata(file)) else None
 
 
-def _get_date_time_original(metadata: dict[MetadataType, str | list[str]]) -> datetime | None:
+def _get_date_time_original(metadata: dict[MetadataType, str | int | list[str]]) -> datetime | None:
     date_time_original = metadata.get(MetadataType.DATE_TIME_ORIGINAL)
     offset_time_original = metadata.get(MetadataType.OFFSET_TIME_ORIGINAL)
     if isinstance(date_time_original, str) and isinstance(offset_time_original, str):
