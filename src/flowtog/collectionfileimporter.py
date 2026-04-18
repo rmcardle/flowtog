@@ -103,6 +103,8 @@ def _get_last_raw_file(collection_files: CollectionFiles) -> Path | None:
 
 
 def import_files(collection_files: CollectionFiles, metadata_session: MetadataSession) -> None:
+    _LOG.debug("Import photos from media")
+
     state = _ImportState(collection_files, metadata_session)
 
     if not state.unsorted_dir.exists():

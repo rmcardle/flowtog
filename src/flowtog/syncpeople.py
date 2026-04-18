@@ -25,6 +25,8 @@ _KEYWORD_PREFIX: Final[str] = (
 
 
 def sync_people(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
+    _LOG.debug("Sync people to keywords")
+
     if not (xmp_files := collection_files.get_files_by_directory_and_type(DirectoryType.PHOTOS, FileType.XMP)):
         _LOG.warning("No XMP files found in Photos directory")
         return

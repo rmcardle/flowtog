@@ -36,6 +36,8 @@ class CollectionValidator:
         )
 
     def validate(self) -> None:
+        _LOG.debug("Validate collection")
+
         missing_range_coroutine = get_missing_range(self._collection.start_num, skip_modulo=10000)
 
         for group_name in self._files.group_names:
