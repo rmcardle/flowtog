@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from os import fspath
+from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 from flowtog.filetype import get_file_type
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class CollectionFile(os.PathLike[str]):
-    path: str
+    path: Path
     filename: str
     filename_stem: str
     file_type: FileType
@@ -24,7 +25,6 @@ class CollectionFile(os.PathLike[str]):
     edit_num: int
     size: int
     modified_time: datetime
-    _fspath: str
 
     @classmethod
     def from_directory_entry(cls,
@@ -35,7 +35,7 @@ class CollectionFile(os.PathLike[str]):
                              edit_num: int) -> Self:
         stat = direntry.stat()
         return cls(
-            path=direntry.path,
+            path=Path(direntry.path),
             filename=get_filename(direntry),
             filename_stem=get_filename_stem(direntry),
             file_type=get_file_type(direntry),
@@ -45,9 +45,8 @@ class CollectionFile(os.PathLike[str]):
             edit_num=edit_num,
             size=stat.st_size,
             modified_time=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
-            _fspath=fspath(direntry),
         )
 
     # Implement os.PathLike[str]
     def __fspath__(self) -> str:
-        return self._fspath
+        return fspath(self.path)

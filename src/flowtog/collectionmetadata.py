@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 from flowtog.filetype import FileType
@@ -59,7 +60,7 @@ class CollectionMetadata:
             return int(rating)
         raise TypeError
 
-    def _get_xmp_path(self, file: CollectionFile) -> str | None:
+    def _get_xmp_path(self, file: CollectionFile) -> Path | None:
         if file.file_type == FileType.XMP:
             return file.path
 
