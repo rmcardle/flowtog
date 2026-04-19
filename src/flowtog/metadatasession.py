@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 # Update _validate_metadata_value_type() if these are changed
 type MetadataScalar = str | int
 type MetadataValue = MetadataScalar | list[MetadataScalar]
+type MetadataByType = dict[MetadataType, MetadataValue]
 
 _LOG = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ _EXIFTOOL_SOURCE_FILE_TAG: Final[str] = "SourceFile"
 
 class MetadataSession(AbstractContextManager["MetadataSession"]):
     _exif_tool_helper: ExifToolHelper
-    _metadata_by_type_by_path: dict[str, dict[MetadataType, MetadataValue]]
+    _metadata_by_type_by_path: dict[str, MetadataByType]
 
     def __init__(self) -> None:
         self._exif_tool_helper = ExifToolHelper(common_args=_EXIFTOOL_ARGS)
@@ -50,7 +51,7 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
         if paths_to_load := {path for path in file_system_paths if path not in self._metadata_by_type_by_path}:
             self._read_metadata(paths_to_load)
 
-    def get_metadata(self, path: str | os.PathLike[str]) -> dict[MetadataType, MetadataValue]:
+    def get_metadata(self, path: str | os.PathLike[str]) -> MetadataByType:
         self.load_metadata([path])
         fspath = os.fspath(path) if isinstance(path, os.PathLike) else path
         return self._metadata_by_type_by_path[fspath]
@@ -68,7 +69,7 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
             source_file = os.path.normpath(source_file)
             self._metadata_by_type_by_path[source_file] = _get_metadata_by_type(tags_by_tag_name)
 
-    def set_metadata(self, path: str | os.PathLike[str], metadata_by_type: dict[MetadataType, MetadataValue]) -> None:
+    def set_metadata(self, path: str | os.PathLike[str], metadata_by_type: MetadataByType) -> None:
         args = ["-overwrite_original"]
 
         for metadata_type, metadata in metadata_by_type.items():
@@ -96,8 +97,8 @@ def _get_tag_names() -> list[str]:
     return [t.value for t in MetadataType]
 
 
-def _get_metadata_by_type(tags: Mapping[str, Any]) -> dict[MetadataType, MetadataValue]:
-    metadata_by_type: dict[MetadataType, MetadataValue] = {}
+def _get_metadata_by_type(tags: Mapping[str, Any]) -> MetadataByType:
+    metadata_by_type: MetadataByType = {}
 
     for tag, value in tags.items():
         _validate_metadata_value_type(value)

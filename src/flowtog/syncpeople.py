@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.collectionmetadata import CollectionMetadata
-    from flowtog.metadatasession import MetadataValue
+    from flowtog.metadatasession import MetadataByType, MetadataValue
 
 _LOG = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
                                                                            current_flat_keywords,
                                                                            current_hierarchical_keywords)
 
-    new_metadata_by_type: dict[MetadataType, MetadataValue] = {}
+    new_metadata_by_type: MetadataByType = {}
     if current_hierarchical_keywords != new_hierarchical_keywords:
         new_metadata_by_type[MetadataType.HIERARCHICAL_SUBJECT] = list(new_hierarchical_keywords)
     if current_flat_keywords != new_flat_keywords:
@@ -67,7 +67,7 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
                          new_flat_keywords)
 
 
-def _get_set_from_metadata_by_type(metadata_by_type: dict[MetadataType, MetadataValue],
+def _get_set_from_metadata_by_type(metadata_by_type: MetadataByType,
                                    metadata_type: MetadataType) -> set[str]:
     if (value := metadata_by_type.get(metadata_type)) is None:
         return set()
