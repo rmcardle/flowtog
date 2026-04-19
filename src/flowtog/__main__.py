@@ -5,6 +5,7 @@ from enum import Enum, auto
 from typing import Final
 
 from flowtog import __version__
+from flowtog.collectiondirectories import DirectoryType
 from flowtog.collectiondirectorycreator import create_directories
 from flowtog.collectionfileimporter import import_files
 from flowtog.collectionfilemover import move_sorted_files, move_to_rejected
@@ -97,7 +98,9 @@ def _move_sorted_files() -> None:
         return
 
     with MetadataSession() as metadata_session:
-        collection_metadata = CollectionMetadata.from_collection_files(collection_files, metadata_session)
+        collection_metadata = CollectionMetadata.from_collection_files(collection_files,
+                                                                       DirectoryType.UNSORTED,
+                                                                       metadata_session)
 
         move_sorted_files(collection_files,
                           collection_metadata,
@@ -124,7 +127,9 @@ def _sync_people() -> None:
     collection_files = CollectionFiles.from_collection(collection)
 
     with MetadataSession() as metadata_session:
-        collection_metadata = CollectionMetadata.from_collection_files(collection_files, metadata_session)
+        collection_metadata = CollectionMetadata.from_collection_files(collection_files,
+                                                                       DirectoryType.PHOTOS,
+                                                                       metadata_session)
 
         sync_people(collection_files, collection_metadata)
 
@@ -135,7 +140,9 @@ def _validate_collection() -> None:
     collection_files = CollectionFiles.from_collection(collection)
 
     with MetadataSession() as metadata_session:
-        collection_metadata = CollectionMetadata.from_collection_files(collection_files, metadata_session)
+        collection_metadata = CollectionMetadata.from_collection_files(collection_files,
+                                                                       DirectoryType.UNSORTED,
+                                                                       metadata_session)
 
         validator = CollectionValidator.from_collection_files(collection_files, collection_metadata)
         validator.validate()

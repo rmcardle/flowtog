@@ -17,6 +17,12 @@ if TYPE_CHECKING:
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
+# We only need to keep track of XMP files in these directories
+_XMP_FILE_DIRECTORY_TYPES = [
+    DirectoryType.UNSORTED,
+    DirectoryType.PHOTOS,
+]
+
 
 @dataclass(frozen=True)
 class CollectionFiles:
@@ -28,8 +34,7 @@ class CollectionFiles:
     last_group_num: int = field(init=False)
     _groups_by_name: dict[str, FileGroup] = field(init=False)
     groups_in_unsorted_dir: list[FileGroup] = field(init=False)
-    _xmp_files: list[CollectionFile] = field(init=False)
-    _xmp_files_in_photos_dir: list[CollectionFile] = field(init=False)
+    _xmp_files_by_directory_type: dict[DirectoryType, list[CollectionFile]] = field(init=False)
 
     @classmethod
     def from_collection(cls, collection: CollectionConfig) -> Self:
@@ -45,8 +50,7 @@ class CollectionFiles:
     def _init_files_from_collection(self) -> None:
         group_names: set[str] = set()
         files_by_group_name: dict[str, list[CollectionFile]] = defaultdict(list)
-        xmp_files: list[CollectionFile] = []
-        xmp_files_in_photos_dir: list[CollectionFile] = []
+        xmp_files_by_directory_type: dict[DirectoryType, list[CollectionFile]] = defaultdict(list)
 
         # CollectionDirectories.get_directory_type() assumes that all paths are absolute
         # That will only be true if os.scandir() is called with absolute paths
@@ -57,11 +61,9 @@ class CollectionFiles:
                 group_names.add(group_name)
                 file = self._create_collection_file(directory_entry)
                 files_by_group_name[group_name].append(file)
-                if file.file_type == FileType.XMP:
-                    if file.directory_type in [DirectoryType.UNSORTED, DirectoryType.REJECTED]:
-                        xmp_files.append(file)
-                    if file.directory_type == DirectoryType.PHOTOS:
-                        xmp_files_in_photos_dir.append(file)
+                if (file.file_type == FileType.XMP
+                        and file.directory_type in _XMP_FILE_DIRECTORY_TYPES):
+                    xmp_files_by_directory_type[file.directory_type].append(file)
 
         sorted_group_names = sorted(group_names)
 
@@ -92,8 +94,7 @@ class CollectionFiles:
         object.__setattr__(self, "last_group_num", last_group_num)
         object.__setattr__(self, "_groups_by_name", groups_by_name)
         object.__setattr__(self, "groups_in_unsorted_dir", groups_in_unsorted_dir)
-        object.__setattr__(self, "_xmp_files", xmp_files)
-        object.__setattr__(self, "_xmp_files_in_photos_dir", xmp_files_in_photos_dir)
+        object.__setattr__(self, "_xmp_files_by_directory_type", xmp_files_by_directory_type)
 
     def _create_collection_file(self,
                                 direntry: os.DirEntry[str]) -> CollectionFile:
@@ -127,16 +128,13 @@ class CollectionFiles:
     def get_group_by_num(self, group_num: int) -> FileGroup | None:
         return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
 
-    def get_files_by_type(self, file_type: FileType) -> list[CollectionFile]:
-        assert file_type == FileType.XMP
-        return self._xmp_files
-
-    def get_files_by_directory_and_type(self,
-                                        directory_type: DirectoryType,
-                                        file_type: FileType) -> list[CollectionFile]:
-        assert directory_type == DirectoryType.PHOTOS
-        assert file_type == FileType.XMP
-        return self._xmp_files_in_photos_dir
+    def get_directory_files_by_type(self,
+                                    directory_type: DirectoryType,
+                                    file_type: FileType) -> list[CollectionFile]:
+        if (file_type == FileType.XMP
+                and directory_type in _XMP_FILE_DIRECTORY_TYPES):
+            return self._xmp_files_by_directory_type[directory_type]
+        raise NotImplementedError
 
 
 def _get_directory_entries(directory: str | Iterable[str]) -> Generator[os.DirEntry[str]]:

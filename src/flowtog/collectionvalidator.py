@@ -83,7 +83,7 @@ class CollectionValidator:
             if file_type == FileType.JPEG \
                     and (rating := self._collection_metadata.get_rating(file)) \
                     and rating >= self._collection.selected_rating \
-                    and file.directory_type in [DirectoryType.UNSORTED, DirectoryType.REJECTED]:
+                    and file.directory_type == DirectoryType.UNSORTED:
                 log_file_path(_LOG,
                               logging.WARNING,
                               f"{file_type.value} file with rating {self._collection.selected_rating} or higher "
