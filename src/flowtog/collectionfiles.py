@@ -17,7 +17,12 @@ if TYPE_CHECKING:
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
-# We only need to keep track of XMP files in these directories
+# We only need to keep track of groups in these directories for CollectionFiles.get_groups_by_directory()
+_GROUP_DIRECTORY_TYPES = [
+    DirectoryType.UNSORTED,
+]
+
+# We only need to keep track of XMP files in these directories for CollectionFiles.get_directory_files_by_type()
 _XMP_FILE_DIRECTORY_TYPES = [
     DirectoryType.UNSORTED,
     DirectoryType.PHOTOS,
@@ -33,7 +38,7 @@ class CollectionFiles:
     _group_names: list[str] = field(init=False)
     last_group_num: int = field(init=False)
     _groups_by_name: dict[str, FileGroup] = field(init=False)
-    groups_in_unsorted_dir: list[FileGroup] = field(init=False)
+    _groups_by_directory_type: dict[DirectoryType, list[FileGroup]] = field(init=False)
     _xmp_files_by_directory_type: dict[DirectoryType, list[CollectionFile]] = field(init=False)
 
     @classmethod
@@ -71,7 +76,7 @@ class CollectionFiles:
         sorted_group_names = sorted(group_names)
         last_group_num = self.collection.start_num - 1
         groups_by_name: dict[str, FileGroup] = {}
-        groups_in_unsorted_dir: list[FileGroup] = []
+        groups_by_directory_type: dict[DirectoryType, list[FileGroup]] = defaultdict(list)
 
         for group_name in sorted_group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
@@ -83,15 +88,15 @@ class CollectionFiles:
             group = FileGroup.from_files(group_name, group_num, group_files)
             groups_by_name[group_name] = group
 
-            if all(file.directory_type == DirectoryType.UNSORTED
-                   for file in group_files):
-                groups_in_unsorted_dir.append(group)
+            directory_type = group_files[0].directory_type
+            if all(file.directory_type == directory_type for file in group_files):
+                groups_by_directory_type[directory_type].append(group)
 
         # Use __setattr__ to avoid FrozenInstanceError
         object.__setattr__(self, "_group_names", sorted_group_names)
         object.__setattr__(self, "last_group_num", last_group_num)
         object.__setattr__(self, "_groups_by_name", groups_by_name)
-        object.__setattr__(self, "groups_in_unsorted_dir", groups_in_unsorted_dir)
+        object.__setattr__(self, "_groups_by_directory_type", groups_by_directory_type)
         object.__setattr__(self, "_xmp_files_by_directory_type", xmp_files_by_directory_type)
 
     def _create_collection_file(self,
@@ -125,6 +130,11 @@ class CollectionFiles:
 
     def get_group_by_num(self, group_num: int) -> FileGroup | None:
         return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
+
+    def get_groups_by_directory(self, directory_type: DirectoryType) -> list[FileGroup]:
+        if directory_type in _GROUP_DIRECTORY_TYPES:
+            return self._groups_by_directory_type[directory_type]
+        raise NotImplementedError
 
     def get_directory_files_by_type(self,
                                     directory_type: DirectoryType,

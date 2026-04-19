@@ -31,7 +31,7 @@ def move_sorted_files(collection_files: CollectionFiles,
                                 directories[DirectoryType.PHOTOS]):
         return
 
-    for group in collection_files.groups_in_unsorted_dir:
+    for group in collection_files.get_groups_by_directory(DirectoryType.UNSORTED):
         if last_group and group.group_num > last_group.group_num:
             return
 
