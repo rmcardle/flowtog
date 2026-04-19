@@ -13,7 +13,7 @@ from flowtog.metadatatype import MetadataType
 
 if TYPE_CHECKING:
     from flowtog.collectionfiles import CollectionFiles
-    from flowtog.metadatasession import MetadataSession
+    from flowtog.metadatasession import MetadataSession, MetadataValue
 
 _LOG = logging.getLogger(__name__)
 
@@ -272,7 +272,7 @@ def _get_time_stamp(metadata_session: MetadataSession, file: Path) -> datetime |
     return _get_date_time_original(metadata) if (metadata := metadata_session.get_metadata(file)) else None
 
 
-def _get_date_time_original(metadata: dict[MetadataType, str | int | list[str]]) -> datetime | None:
+def _get_date_time_original(metadata: dict[MetadataType, MetadataValue]) -> datetime | None:
     date_time_original = metadata.get(MetadataType.DATE_TIME_ORIGINAL)
     offset_time_original = metadata.get(MetadataType.OFFSET_TIME_ORIGINAL)
     if isinstance(date_time_original, str) and isinstance(offset_time_original, str):

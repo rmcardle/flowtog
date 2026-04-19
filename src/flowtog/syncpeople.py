@@ -1,4 +1,5 @@
 import logging
+from argparse import ArgumentTypeError
 from typing import TYPE_CHECKING, Final
 
 from flowtog.collectiondirectories import DirectoryType
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.collectionmetadata import CollectionMetadata
+    from flowtog.metadatasession import MetadataValue
 
 _LOG = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
                                                                            current_flat_keywords,
                                                                            current_hierarchical_keywords)
 
-    new_metadata_by_type: dict[MetadataType, str | list[str]] = {}
+    new_metadata_by_type: dict[MetadataType, MetadataValue] = {}
     if current_hierarchical_keywords != new_hierarchical_keywords:
         new_metadata_by_type[MetadataType.HIERARCHICAL_SUBJECT] = list(new_hierarchical_keywords)
     if current_flat_keywords != new_flat_keywords:
@@ -65,13 +67,21 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
                          new_flat_keywords)
 
 
-def _get_set_from_metadata_by_type(metadata_by_type: dict[MetadataType, str | list[str]],
+def _get_set_from_metadata_by_type(metadata_by_type: dict[MetadataType, MetadataValue],
                                    metadata_type: MetadataType) -> set[str]:
-    if (metadata := metadata_by_type.get(metadata_type)) is None:
+    if (value := metadata_by_type.get(metadata_type)) is None:
         return set()
-    if isinstance(metadata, list):
-        return set(metadata)
-    return {metadata}
+
+    if isinstance(value, list):
+        if not all(isinstance(i, str) for i in value):
+            raise ArgumentTypeError
+        # noinspection PyTypeChecker
+        return set(value)  # pyright: ignore [reportReturnType]
+
+    if not isinstance(value, str):
+        raise ArgumentTypeError
+
+    return {value}
 
 
 def _calculate_new_keywords(current_people: Iterable[str],

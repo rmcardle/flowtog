@@ -13,6 +13,10 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
     from types import TracebackType
 
+# Update _validate_metadata_value_type() if these are changed
+type MetadataScalar = str | int
+type MetadataValue = MetadataScalar | list[MetadataScalar]
+
 _LOG = logging.getLogger(__name__)
 
 _EXIFTOOL_ARGS: Final[list[str]] = [
@@ -24,7 +28,7 @@ _EXIFTOOL_SOURCE_FILE_TAG: Final[str] = "SourceFile"
 
 class MetadataSession(AbstractContextManager["MetadataSession"]):
     _exif_tool_helper: ExifToolHelper
-    _metadata_by_type_by_path: dict[str, dict[MetadataType, str | int | list[str]]]
+    _metadata_by_type_by_path: dict[str, dict[MetadataType, MetadataValue]]
 
     def __init__(self) -> None:
         self._exif_tool_helper = ExifToolHelper(common_args=_EXIFTOOL_ARGS)
@@ -46,14 +50,14 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
         if paths_to_load := {path for path in file_system_paths if path not in self._metadata_by_type_by_path}:
             self._read_metadata(paths_to_load)
 
-    def get_metadata(self, path: str | os.PathLike[str]) -> dict[MetadataType, str | int | list[str]]:
+    def get_metadata(self, path: str | os.PathLike[str]) -> dict[MetadataType, MetadataValue]:
         self.load_metadata([path])
         fspath = os.fspath(path) if isinstance(path, os.PathLike) else path
         return self._metadata_by_type_by_path[fspath]
 
     def get_metadata_by_type(self,
                              path: str | os.PathLike[str],
-                             metadata_type: MetadataType) -> str | int | list[str] | None:
+                             metadata_type: MetadataType) -> MetadataValue | None:
         return self.get_metadata(path).get(metadata_type)
 
     def _read_metadata(self, paths: str | Iterable[str]) -> None:
@@ -64,19 +68,18 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
             source_file = os.path.normpath(source_file)
             self._metadata_by_type_by_path[source_file] = _get_metadata_by_type(tags_by_tag_name)
 
-    def set_metadata(self, path: str | os.PathLike[str], metadata_by_type: dict[MetadataType, str | list[str]]) -> None:
+    def set_metadata(self, path: str | os.PathLike[str], metadata_by_type: dict[MetadataType, MetadataValue]) -> None:
         args = ["-overwrite_original"]
 
         for metadata_type, metadata in metadata_by_type.items():
-            args.extend([f"-{metadata_type.value}={m}" for m in metadata])
+            if isinstance(metadata, list):
+                args.extend([f"-{metadata_type.value}={m}" for m in metadata])
+            else:
+                args.extend(f"-{metadata_type.value}={metadata}")
 
         args.append(get_path(path))
 
-        # _LOG.debug(f"{self.set_metadata.__qualname__}(): Calling ExifToolHelper.execute() with arguments: " +
-        #            " ".join(args))
-
-        # TODO: Enable
-        # self._exif_tool_helper.execute(*args)
+        self._exif_tool_helper.execute(*args)  # pyright: ignore [reportUnknownMemberType]
 
 
 def validate_exiftool() -> bool:
@@ -93,17 +96,21 @@ def _get_tag_names() -> list[str]:
     return [t.value for t in MetadataType]
 
 
-def _get_metadata_by_type(tags: Mapping[str, Any]) -> dict[MetadataType, str | int | list[str]]:
-    metadata_by_type: dict[MetadataType, str | int | list[str]] = {}
+def _get_metadata_by_type(tags: Mapping[str, Any]) -> dict[MetadataType, MetadataValue]:
+    metadata_by_type: dict[MetadataType, MetadataValue] = {}
 
     for tag, value in tags.items():
-        if not (isinstance(value, str | int)
-                or ((isinstance(value, list))
-                    and all(isinstance(i, str) for i in value))):  # pyright: ignore [reportUnknownVariableType]\
-            raise ArgumentTypeError
+        _validate_metadata_value_type(value)
 
         # Ignore tags that don't have a corresponding MetadataType
         with suppress(ValueError):
             metadata_by_type[MetadataType(tag)] = value
 
     return metadata_by_type
+
+
+def _validate_metadata_value_type(value: Any) -> None:  # noqa: ANN401 any-type
+    if not (isinstance(value, str | int)
+            or ((isinstance(value, list))
+                and all(isinstance(i, str | int) for i in value))):  # pyright: ignore [reportUnknownVariableType]
+        raise ArgumentTypeError
