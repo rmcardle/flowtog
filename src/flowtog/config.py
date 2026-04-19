@@ -61,7 +61,7 @@ class Person:
 
 @dataclass(frozen=True)
 class Config:
-    collection: Mapping[str, CollectionConfig] = field(default_factory=dict[str, CollectionConfig])
+    collection: CollectionConfig
     people: Mapping[str, Person] = field(default_factory=dict[str, Person])
 
     @classmethod
@@ -70,9 +70,9 @@ class Config:
         if config_file_path.is_file():
             config = Binder(cls).parse_toml(config_file_path)
         else:
-            config = cls(collection={
-                "DSC": CollectionConfig(),
-            })
+            config = cls(
+                collection=CollectionConfig(),
+            )
 
         config._normalize_paths(config_file_path.parent)
         return config
@@ -80,13 +80,12 @@ class Config:
 
     def _normalize_paths(self, base_dir: Path) -> None:
         base_dir = base_dir.absolute()
-        for collection in self.collection.values():
-            for collection_field in collection.directory_fields:
-                value: Path = getattr(collection, collection_field.name)
-                value = _normalize_path(value, base_dir)
-                value = _follow_shortcut(value)
-                # Use __setattr__ to avoid FrozenInstanceError
-                object.__setattr__(collection, collection_field.name, value)
+        for collection_field in self.collection.directory_fields:
+            value: Path = getattr(self.collection, collection_field.name)
+            value = _normalize_path(value, base_dir)
+            value = _follow_shortcut(value)
+            # Use __setattr__ to avoid FrozenInstanceError
+            object.__setattr__(self.collection, collection_field.name, value)
 
 
 def _normalize_path(path: Path, base_dir: Path) -> Path:

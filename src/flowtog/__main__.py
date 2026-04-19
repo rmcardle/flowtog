@@ -76,23 +76,19 @@ def _show_main_menu() -> bool:
 
 def _create_directories() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
-    collection = config.collection["DSC"]
-
-    create_directories(collection)
+    create_directories(config.collection)
 
 
 def _import_files() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
-    collection = config.collection["DSC"]
-    collection_files = CollectionFiles.from_collection(collection)
+    collection_files = CollectionFiles.from_collection(config.collection)
 
     import_files(collection_files)
 
 
 def _move_sorted_files() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
-    collection = config.collection["DSC"]
-    collection_files = CollectionFiles.from_collection(collection)
+    collection_files = CollectionFiles.from_collection(config.collection)
 
     if (last_group := _prompt_for_group(collection_files, allow_all=True)) == _GroupSelection.NONE:
         return
@@ -109,22 +105,20 @@ def _move_sorted_files() -> None:
 
 def _move_to_rejected() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
-    collection = config.collection["DSC"]
-    collection_files = CollectionFiles.from_collection(collection)
+    collection_files = CollectionFiles.from_collection(config.collection)
 
     while True:
         group = _prompt_for_group(collection_files)
         if not isinstance(group, FileGroup):
             return
 
-        move_to_rejected(group, collection)
+        move_to_rejected(group, config.collection)
         print()  # noqa: T201 print
 
 
 def _sync_people() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
-    collection = config.collection["DSC"]
-    collection_files = CollectionFiles.from_collection(collection)
+    collection_files = CollectionFiles.from_collection(config.collection)
 
     with MetadataSession() as metadata_session:
         collection_metadata = CollectionMetadata.from_collection_files(collection_files,
@@ -136,8 +130,7 @@ def _sync_people() -> None:
 
 def _validate_collection() -> None:
     config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
-    collection = config.collection["DSC"]
-    collection_files = CollectionFiles.from_collection(collection)
+    collection_files = CollectionFiles.from_collection(config.collection)
 
     with MetadataSession() as metadata_session:
         collection_metadata = CollectionMetadata.from_collection_files(collection_files,
