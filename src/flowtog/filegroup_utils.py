@@ -5,11 +5,11 @@ from typing import ParamSpec, TypeVar
 type MissingRange = tuple[int, int] | None
 type MissingRangeCoroutine = Generator[MissingRange, int]
 
+P = ParamSpec("P")  # Parameters
+Y = TypeVar("Y")    # Yielded Values
+S = TypeVar("S")    # Sent Values
+R = TypeVar("R")    # Return Value
 
-P = ParamSpec("P") # Parameters
-Y = TypeVar("Y")   # Yielded Values
-S = TypeVar("S")   # Sent Values
-R = TypeVar("R")   # Return Value
 
 def coroutine[**P, Y, S, R](func: Callable[P, Generator[Y, S, R]]) -> Callable[P, Generator[Y, S, R]]:
     @wraps(func)

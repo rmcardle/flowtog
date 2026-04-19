@@ -147,7 +147,5 @@ def _get_keyword_changes(old_keywords: set[str],
 def _get_keyword_changes_string(metadata_changes: tuple[Iterable[str], Iterable[str]]) -> str:
     added = ", ".join(metadata_changes[0])
     removed = ", ".join(metadata_changes[1])
-    return " - ".join(
-        ([f"Added: {added}"] if added else []) +
-        ([f"Removed: {removed}"] if removed else [])  # noqa: COM812
-    )
+    return " - ".join(([f"Added: {added}"] if added else []) +
+                      ([f"Removed: {removed}"] if removed else []))

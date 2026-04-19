@@ -2,11 +2,13 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Iterator, TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self
 
 from flowtog.path_utils import PathArg, get_directory
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from flowtog.config import CollectionConfig
 
 
