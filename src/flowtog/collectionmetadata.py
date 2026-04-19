@@ -9,7 +9,7 @@ from flowtog.path_utils import get_filename_stem
 if TYPE_CHECKING:
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
-    from flowtog.metadatasession import MetadataByType, MetadataSession, MetadataValue
+    from flowtog.metadatasession import MetadataByType, MetadataSession
 
 
 @dataclass(frozen=True)

@@ -13,7 +13,7 @@ from flowtog.metadatatype import MetadataType
 
 if TYPE_CHECKING:
     from flowtog.collectionfiles import CollectionFiles
-    from flowtog.metadatasession import MetadataByType, MetadataSession, MetadataValue
+    from flowtog.metadatasession import MetadataByType, MetadataSession
 
 _LOG = logging.getLogger(__name__)
 
