@@ -24,7 +24,7 @@ class DirectoryType(Enum):
 
 @dataclass(frozen=True)
 class CollectionDirectories:
-    _directories_by_type: dict[DirectoryType, str]
+    _directories_by_type: dict[DirectoryType, Path]
     _type_by_normalized_directory: dict[str, DirectoryType] = field(init=False)
 
     @classmethod
@@ -34,7 +34,7 @@ class CollectionDirectories:
         )
 
     @staticmethod
-    def _get_directories_by_type(collection: CollectionConfig) -> dict[DirectoryType, str]:
+    def _get_directories_by_type(collection: CollectionConfig) -> dict[DirectoryType, Path]:
         return {DirectoryType(directory_type): directory
                 for directory_type, directory in collection.directories.items()}
 
@@ -58,10 +58,10 @@ class CollectionDirectories:
 
     @property
     def valid_directories(self) -> list[str]:
-        return [d for d in self._dirs if os.path.isdir(d)]
+        return [str(d) for d in self._dirs if d.is_dir()]
 
     @property
-    def _dirs(self) -> list[str]:
+    def _dirs(self) -> list[Path]:
         return list(self._directories_by_type.values())
 
     def get_directory_type(self, file: PathArg) -> DirectoryType:
