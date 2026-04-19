@@ -56,37 +56,35 @@ class CollectionFiles:
         # That will only be true if os.scandir() is called with absolute paths
         # CollectionDirectories.valid_directories were already made absolute in Config.load()
         for directory_entry in _get_directory_entries(self.directories.valid_directories):
-            if (directory_entry.is_file()
+            if not (directory_entry.is_file()
                     and (group_name := self._filename_parser.get_group_name(directory_entry))):
-                group_names.add(group_name)
-                file = self._create_collection_file(directory_entry)
-                files_by_group_name[group_name].append(file)
-                if (file.file_type == FileType.XMP
-                        and file.directory_type in _XMP_FILE_DIRECTORY_TYPES):
-                    xmp_files_by_directory_type[file.directory_type].append(file)
+                continue
+
+            group_names.add(group_name)
+            file = self._create_collection_file(directory_entry)
+            files_by_group_name[group_name].append(file)
+
+            if (file.file_type == FileType.XMP
+                    and file.directory_type in _XMP_FILE_DIRECTORY_TYPES):
+                xmp_files_by_directory_type[file.directory_type].append(file)
 
         sorted_group_names = sorted(group_names)
-
         last_group_num = self.collection.start_num - 1
         groups_by_name: dict[str, FileGroup] = {}
         groups_in_unsorted_dir: list[FileGroup] = []
+
         for group_name in sorted_group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
                 _LOG.error(f"{group_name}: Could not determine file number")
                 continue
 
             last_group_num = max(last_group_num, group_num)
-
             group_files = files_by_group_name[group_name]
             group = FileGroup.from_files(group_name, group_num, group_files)
-
             groups_by_name[group_name] = group
 
-            in_unsorted_dir = True
-            for file in group_files:
-                if file.directory_type != DirectoryType.UNSORTED:
-                    in_unsorted_dir = False
-            if in_unsorted_dir:
+            if all(file.directory_type == DirectoryType.UNSORTED
+                   for file in group_files):
                 groups_in_unsorted_dir.append(group)
 
         # Use __setattr__ to avoid FrozenInstanceError
