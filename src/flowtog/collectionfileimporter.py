@@ -1,6 +1,6 @@
 import logging
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
@@ -9,11 +9,9 @@ from psutil import disk_partitions
 
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.filetype import FileType
-from flowtog.metadatatype import MetadataType
 
 if TYPE_CHECKING:
     from flowtog.collectionfiles import CollectionFiles
-    from flowtog.metadatasession import MetadataByType, MetadataSession
 
 _LOG = logging.getLogger(__name__)
 
@@ -28,14 +26,13 @@ _RAW_EXTENSION: Final[str] = ".ARW"
 
 
 class _ImportState:
-    def __init__(self, collection_files: CollectionFiles, metadata_session: MetadataSession) -> None:
+    def __init__(self, collection_files: CollectionFiles) -> None:
+        last_raw_size, last_raw_modified_time = _get_last_raw_size_and_modified_time(collection_files)
         self.collection_files = collection_files
-        self.metadata_session = metadata_session
         self.filename_format = collection_files.collection.filename_format
         self.unsorted_dir = collection_files.directories[DirectoryType.UNSORTED]
-        self.last_raw_time_stamp = (_get_time_stamp(metadata_session, last_raw_file)
-                                    if (last_raw_file := _get_last_raw_file(collection_files))
-                                    else None)
+        self.last_raw_size = last_raw_size
+        self.last_raw_modified_time = last_raw_modified_time
         self.last_source_file_num = collection_files.last_group_num % 10000
         self.last_destination_file_num = collection_files.last_group_num
         self.import_file_pairs: list[Path] = []
@@ -91,21 +88,22 @@ class _ImportState:
         return (ten_thousands * 10000) + file_num
 
 
-def _get_last_raw_file(collection_files: CollectionFiles) -> Path | None:
+def _get_last_raw_size_and_modified_time(collection_files: CollectionFiles) -> tuple[int | None, datetime | None]:
     if not (last_group := collection_files.last_group):
         # If the collection is empty, we can return None, otherwise there's a problem
         assert collection_files.group_count == 0
-        return None
+        return None, None
     raw_files = last_group.files_by_type[FileType.RAW]
     if len(raw_files) != 1:
         raise AssertionError
-    return Path(raw_files[0].path)
+    raw_file = raw_files[0]
+    return raw_file.size, raw_file.modified_time
 
 
-def import_files(collection_files: CollectionFiles, metadata_session: MetadataSession) -> None:
+def import_files(collection_files: CollectionFiles) -> None:
     _LOG.debug("Import photos from media")
 
-    state = _ImportState(collection_files, metadata_session)
+    state = _ImportState(collection_files)
 
     if not state.unsorted_dir.exists():
         _LOG.error(f"{state.unsorted_dir} does not exist")
@@ -150,35 +148,37 @@ def _scan_dcf_media(state: _ImportState, dcf_media: Path) -> None:
 
         dcf_dir_sorted_files = sorted(p for p in path.iterdir() if p.is_file())
 
-        if not _dcf_dir_time_stamps_are_valid(state, path, dcf_dir_sorted_files):
+        if not _dcf_dir_matches_expected(state, path, dcf_dir_sorted_files):
             _LOG.debug(f"Ignoring {path}")
             continue
 
         _scan_dcf_dir(state, path, dcf_dir_sorted_files)
 
 
-def _dcf_dir_time_stamps_are_valid(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list[Path]) -> bool:
-    if not state.last_raw_time_stamp:
+def _dcf_dir_matches_expected(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list[Path]) -> bool:
+    if not state.last_raw_size:
         return True
 
-    last_imported_raw_file, first_sorted_raw_file = _get_time_stamp_raw_files(state, dcf_dir_sorted_files)
+    last_imported_raw_file, first_sorted_raw_file = \
+        _get_last_imported_and_first_sorted_raw_files(state, dcf_dir_sorted_files)
 
     if not first_sorted_raw_file:
         _LOG.warning(f"No RAW files found in {dcf_dir}")
         return False
 
     if last_imported_raw_file:
-        if not _check_last_raw_time_stamp(state, last_imported_raw_file, _CheckTimeStampComparison.SAME):
-            _LOG.debug(f"Date and time for RAW file {last_imported_raw_file} does not match expected")
+        if not _check_last_raw_match(state, last_imported_raw_file, _CheckRawMatchComparison.SAME):
+            _LOG.debug(f"Size and last modified time for RAW file {last_imported_raw_file} do not match expected")
             return False
-    elif not _check_last_raw_time_stamp(state, first_sorted_raw_file, _CheckTimeStampComparison.SAME_OR_NEWER):
-        _LOG.debug(f"Date and time for RAW file {first_sorted_raw_file} is earlier than expected")
+    elif not _check_last_raw_match(state, first_sorted_raw_file, _CheckRawMatchComparison.SAME_OR_NEWER):
+        _LOG.debug(f"Last modified time for RAW file {first_sorted_raw_file} is earlier than expected")
         return False
 
     return True
 
 
-def _get_time_stamp_raw_files(state: _ImportState, dcf_dir_sorted_files: list[Path]) -> tuple[Path | None, Path | None]:
+def _get_last_imported_and_first_sorted_raw_files(state: _ImportState,
+                                                  dcf_dir_sorted_files: list[Path]) -> tuple[Path | None, Path | None]:
     last_imported_raw_file: Path | None = None
     first_sorted_raw_file: Path | None = None
 
@@ -199,21 +199,23 @@ def _get_time_stamp_raw_files(state: _ImportState, dcf_dir_sorted_files: list[Pa
     return last_imported_raw_file, first_sorted_raw_file
 
 
-class _CheckTimeStampComparison(Enum):
+class _CheckRawMatchComparison(Enum):
     SAME = auto()
     SAME_OR_NEWER = auto()
 
 
-def _check_last_raw_time_stamp(state: _ImportState, file: Path, comparison: _CheckTimeStampComparison) -> bool:
-    assert state.last_raw_time_stamp
-    if not (time_stamp := _get_time_stamp(state.metadata_session, file)):
-        _LOG.error(f"Could not get date and time for file\n\t{file}")
-        raise AssertionError
+def _check_last_raw_match(state: _ImportState, file: Path, comparison: _CheckRawMatchComparison) -> bool:
+    assert state.last_raw_size
+    assert state.last_raw_modified_time
+
+    file_size, file_modified_time = _get_file_size_and_modified_time(file)
+
     match comparison:
-        case _CheckTimeStampComparison.SAME:
-            return time_stamp == state.last_raw_time_stamp
-        case _CheckTimeStampComparison.SAME_OR_NEWER:
-            return time_stamp >= state.last_raw_time_stamp
+        case _CheckRawMatchComparison.SAME:
+            return (file_size == state.last_raw_size
+                    and file_modified_time == state.last_raw_modified_time)
+        case _CheckRawMatchComparison.SAME_OR_NEWER:
+            return file_modified_time >= state.last_raw_modified_time
         case _:
             raise NotImplementedError
 
@@ -245,10 +247,7 @@ def _scan_dcf_dir(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list
             last_raw_file = path
 
     if last_raw_file:
-        if not (last_raw_time_stamp := _get_time_stamp(state.metadata_session, last_raw_file)):
-            _LOG.error(f"Could not get date and time for file\n\t{last_raw_file}")
-            raise AssertionError
-        state.last_raw_time_stamp = last_raw_time_stamp
+        state.last_raw_size, state.last_raw_modified_time = _get_file_size_and_modified_time(last_raw_file)
 
 
 def _copy_files(file_pairs: list[Path]) -> None:
@@ -268,13 +267,6 @@ def _get_file_num(path: Path) -> int | None:
     return int(match.group("file_num")) if (match := _DCF_OBJECT_PATTERN.match(path.name)) else None
 
 
-def _get_time_stamp(metadata_session: MetadataSession, file: Path) -> datetime | None:
-    return _get_date_time_original(metadata) if (metadata := metadata_session.get_metadata(file)) else None
-
-
-def _get_date_time_original(metadata: MetadataByType) -> datetime | None:
-    date_time_original = metadata.get(MetadataType.DATE_TIME_ORIGINAL)
-    offset_time_original = metadata.get(MetadataType.OFFSET_TIME_ORIGINAL)
-    if isinstance(date_time_original, str) and isinstance(offset_time_original, str):
-        return datetime.strptime(f"{date_time_original} {offset_time_original}", "%Y:%m:%d %H:%M:%S %z")
-    return None
+def _get_file_size_and_modified_time(file: Path) -> tuple[int, datetime]:
+    file_stat = file.stat()
+    return file_stat.st_size, datetime.fromtimestamp(file_stat.st_mtime, tz=UTC)

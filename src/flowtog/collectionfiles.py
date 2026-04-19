@@ -8,8 +8,7 @@ from flowtog.collectiondirectories import CollectionDirectories, DirectoryType
 from flowtog.collectionfile import CollectionFile
 from flowtog.collectionfilenameparser import CollectionFilenameParser
 from flowtog.filegroup import FileGroup
-from flowtog.filetype import FileType, get_file_type
-from flowtog.path_utils import get_filename, get_filename_stem
+from flowtog.filetype import FileType
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
@@ -98,15 +97,10 @@ class CollectionFiles:
 
     def _create_collection_file(self,
                                 direntry: os.DirEntry[str]) -> CollectionFile:
-        file_type = get_file_type(direntry)
-        edit_num_str = self._filename_parser.get_edit_num(direntry)
         directory_type = self.directories.get_directory_type(direntry)
-        return CollectionFile(
-            direntry=direntry,
-            path=direntry.path,
-            filename=get_filename(direntry),
-            filename_stem=get_filename_stem(direntry),
-            file_type=file_type,
+        edit_num_str = self._filename_parser.get_edit_num(direntry)
+        return CollectionFile.from_directory_entry(
+            direntry,
             directory_type=directory_type,
             is_edit=bool(edit_num_str),
             edit_num=int(edit_num_str) if edit_num_str else 0,

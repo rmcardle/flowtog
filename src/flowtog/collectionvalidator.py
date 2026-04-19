@@ -7,7 +7,6 @@ from flowtog.collectiondirectories import DirectoryType
 from flowtog.filegroup_utils import MissingRangeCoroutine, format_range, get_missing_range
 from flowtog.filetype import FileType
 from flowtog.log_utils import log_file_path
-from flowtog.path_utils import in_same_dir
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable
@@ -116,7 +115,7 @@ class CollectionValidator:
         invalid_xmp_files = [
             xmp_file for xmp_file in group.files_by_type[FileType.XMP]
             if not any(
-                in_same_dir(xmp_file.direntry, jpeg_file.direntry)
+                xmp_file.directory == jpeg_file.directory
                 for jpeg_file in jpeg_files_by_filename_stem[xmp_file.filename_stem]
             )
         ]

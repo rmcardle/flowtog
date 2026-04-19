@@ -85,8 +85,7 @@ def _import_files() -> None:
     collection = config.collection["DSC"]
     collection_files = CollectionFiles.from_collection(collection)
 
-    with MetadataSession() as metadata_session:
-        import_files(collection_files, metadata_session)
+    import_files(collection_files)
 
 
 def _move_sorted_files() -> None:
