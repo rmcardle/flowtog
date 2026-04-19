@@ -1,5 +1,4 @@
 import logging
-from argparse import ArgumentTypeError
 from typing import TYPE_CHECKING, Final
 
 from flowtog.collectiondirectories import DirectoryType
@@ -74,12 +73,12 @@ def _get_set_from_metadata_by_type(metadata_by_type: MetadataByType,
 
     if isinstance(value, list):
         if not all(isinstance(i, str) for i in value):
-            raise ArgumentTypeError
+            raise TypeError
         # noinspection PyTypeChecker
         return set(value)  # pyright: ignore [reportReturnType]
 
     if not isinstance(value, str):
-        raise ArgumentTypeError
+        raise TypeError
 
     return {value}
 

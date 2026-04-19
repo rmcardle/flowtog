@@ -1,6 +1,5 @@
 import logging
 import os
-from argparse import ArgumentTypeError
 from contextlib import AbstractContextManager, suppress
 from typing import TYPE_CHECKING, Any, Final, Self
 
@@ -114,4 +113,4 @@ def _validate_metadata_value_type(value: Any) -> None:  # noqa: ANN401 any-type
     if not (isinstance(value, str | int)
             or ((isinstance(value, list))
                 and all(isinstance(i, str | int) for i in value))):  # pyright: ignore [reportUnknownVariableType]
-        raise ArgumentTypeError
+        raise TypeError
