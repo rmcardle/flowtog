@@ -65,18 +65,19 @@ class Config:
     people: Mapping[str, Person] = field(default_factory=dict[str, Person])
 
     @classmethod
-    def load(cls, config_file: str | os.PathLike[str] | Path) -> Self:
-        config_file_path = Path(config_file)
-        if config_file_path.is_file():
-            config = Binder(cls).parse_toml(config_file_path)
-        else:
-            config = cls(
+    def load(cls, path: str | os.PathLike[str] | Path) -> Self:
+        load_path = Path(path)
+        if load_path.is_dir():
+            load_path /= _CONFIG_FILE_NAME
+
+        config = Binder(cls).parse_toml(load_path) \
+            if load_path.is_file() \
+            else cls(
                 collection=CollectionConfig(),
             )
+        config._normalize_paths(load_path.parent)  # noqa: SLF001 private-member-access
 
-        config._normalize_paths(config_file_path.parent)
         return config
-
 
     def _normalize_paths(self, base_dir: Path) -> None:
         base_dir = base_dir.absolute()

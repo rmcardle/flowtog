@@ -75,19 +75,19 @@ def _show_main_menu() -> bool:
 
 
 def _create_directories() -> None:
-    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    config: Config = Config.load(_ROOT_DIR)
     create_directories(config.collection)
 
 
 def _import_files() -> None:
-    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    config: Config = Config.load(_ROOT_DIR)
     collection_files = CollectionFiles.from_collection(config.collection)
 
     import_files(collection_files)
 
 
 def _move_sorted_files() -> None:
-    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    config: Config = Config.load(_ROOT_DIR)
     collection_files = CollectionFiles.from_collection(config.collection)
 
     if (last_group := _prompt_for_group(collection_files, allow_all=True)) == _GroupSelection.NONE:
@@ -104,7 +104,7 @@ def _move_sorted_files() -> None:
 
 
 def _move_to_rejected() -> None:
-    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    config: Config = Config.load(_ROOT_DIR)
     collection_files = CollectionFiles.from_collection(config.collection)
 
     while True:
@@ -117,7 +117,7 @@ def _move_to_rejected() -> None:
 
 
 def _sync_people() -> None:
-    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    config: Config = Config.load(_ROOT_DIR)
     collection_files = CollectionFiles.from_collection(config.collection)
 
     with MetadataSession() as metadata_session:
@@ -129,7 +129,7 @@ def _sync_people() -> None:
 
 
 def _validate_collection() -> None:
-    config: Config = Config.load(f"{_ROOT_DIR}\\flowtog.toml")
+    config: Config = Config.load(_ROOT_DIR)
     collection_files = CollectionFiles.from_collection(config.collection)
 
     with MetadataSession() as metadata_session:
