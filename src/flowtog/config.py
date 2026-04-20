@@ -9,8 +9,6 @@ from typing import TYPE_CHECKING, Final, Self
 import win32com.client
 from dataclass_binder import Binder
 
-from flowtog.path_utils import get_extension_lower
-
 if TYPE_CHECKING:
     import os
 
@@ -94,7 +92,7 @@ def _normalize_path(path: Path, base_dir: Path) -> Path:
 
 
 def _follow_shortcut(shortcut_path: Path) -> Path:
-    if get_extension_lower(shortcut_path) != ".lnk":
+    if shortcut_path.suffix.lower() != ".lnk":
         return shortcut_path
 
     target = _get_shortcut_target(shortcut_path)

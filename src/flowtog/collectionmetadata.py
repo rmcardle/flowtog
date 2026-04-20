@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 from flowtog.filetype import FileType
 from flowtog.metadatatype import MetadataType
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from flowtog.collectiondirectories import DirectoryType
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
@@ -48,7 +49,7 @@ class CollectionMetadata:
         return self._metadata_session.get_metadata(file)
 
     def set_metadata(self, file: CollectionFile, metadata_by_type: MetadataByType) -> None:
-        self._metadata_session.set_metadata(file, metadata_by_type)
+        self._metadata_session.set_metadata(file.path, metadata_by_type)
 
     def get_rating(self, file: CollectionFile) -> int | None:
         if not ((xmp_path := self._get_xmp_path(file))

@@ -1,10 +1,8 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from flowtog.path_utils import get_extension_lower
-
 if TYPE_CHECKING:
-    import os
+    from pathlib import Path
 
 
 class FileType(Enum):
@@ -22,5 +20,5 @@ _extension_file_types: dict[str, FileType] = {
 }
 
 
-def get_file_type(file: os.DirEntry[str]) -> FileType:
-    return _extension_file_types.get(get_extension_lower(file), FileType.OTHER)
+def get_file_type(path: Path) -> FileType:
+    return _extension_file_types.get(path.suffix.lower(), FileType.OTHER)

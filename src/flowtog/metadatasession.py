@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any, Final, Self
 from exiftool import ExifTool, ExifToolHelper  # pyright: ignore [reportMissingTypeStubs]
 
 from flowtog.metadatatype import MetadataType
-from flowtog.path_utils import get_path
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
+    from pathlib import Path
     from types import TracebackType
 
 # Update _validate_metadata_value_type() if these are changed
@@ -68,7 +68,7 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
             source_file = os.path.normpath(source_file)
             self._metadata_by_type_by_path[source_file] = _get_metadata_by_type(tags_by_tag_name)
 
-    def set_metadata(self, path: str | os.PathLike[str], metadata_by_type: MetadataByType) -> None:
+    def set_metadata(self, path: Path, metadata_by_type: MetadataByType) -> None:
         args = ["-overwrite_original"]
 
         for metadata_type, metadata in metadata_by_type.items():
@@ -77,7 +77,7 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
             else:
                 args.extend(f"-{metadata_type.value}={metadata}")
 
-        args.append(get_path(path))
+        args.append(str(path))
 
         self._exif_tool_helper.execute(*args)  # pyright: ignore [reportUnknownMemberType]
 

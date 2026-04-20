@@ -2,6 +2,7 @@ import logging
 import os
 from collections import defaultdict
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Final, Self
 
 from flowtog.collectiondirectories import CollectionDirectories, DirectoryType
@@ -57,9 +58,6 @@ class CollectionFiles:
         files_by_group_name: dict[str, list[CollectionFile]] = defaultdict(list)
         xmp_files_by_directory_type: dict[DirectoryType, list[CollectionFile]] = defaultdict(list)
 
-        # CollectionDirectories.get_directory_type() assumes that all paths are absolute
-        # That will only be true if os.scandir() is called with absolute paths
-        # CollectionDirectories.valid_directories were already made absolute in Config.load()
         for directory_entry in _get_directory_entries(self.directories.valid_directories):
             if not (directory_entry.is_file()
                     and (group_name := self._filename_parser.get_group_name(directory_entry))):
@@ -101,7 +99,8 @@ class CollectionFiles:
 
     def _create_collection_file(self,
                                 direntry: os.DirEntry[str]) -> CollectionFile:
-        directory_type = self.directories.get_directory_type(direntry)
+        directory = Path(direntry.path).parent
+        directory_type = self.directories.get_directory_type(directory)
         edit_num_str = self._filename_parser.get_edit_num(direntry)
         return CollectionFile.from_directory_entry(
             direntry,
@@ -145,12 +144,11 @@ class CollectionFiles:
         raise NotImplementedError
 
 
-def _get_directory_entries(directory: str | Iterable[str]) -> Generator[os.DirEntry[str]]:
-    # We can't check if directory is an Iterable because str is also Iterable
-    if not isinstance(directory, str):
-        for d in directory:
-            yield from _get_directory_entries(d)
+def _get_directory_entries(directory: Path | Iterable[Path]) -> Generator[os.DirEntry[str]]:
+    if isinstance(directory, Path):
+        with os.scandir(directory) as iterator:
+            yield from iterator
         return
 
-    with os.scandir(directory) as iterator:
-        yield from iterator
+    for d in directory:
+        yield from _get_directory_entries(d)

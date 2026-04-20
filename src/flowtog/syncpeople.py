@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Final
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.filetype import FileType
 from flowtog.metadatatype import MetadataType
-from flowtog.path_utils import get_filename_stem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -130,7 +129,7 @@ def _log_keyword_changes(xmp_file: CollectionFile,
     flat_changes = _get_keyword_changes(old_flat_keywords, new_flat_keywords)
 
     if any(flat_changes):
-        _LOG.info(f"{get_filename_stem(xmp_file)}: Metadata changed\n"
+        _LOG.info(f"{xmp_file.filename_stem}: Metadata changed\n"
                   "\t" + _get_keyword_changes_string(flat_changes))
     if any(hierarchical_changes):
         _LOG.debug("\t" + _get_keyword_changes_string(hierarchical_changes))

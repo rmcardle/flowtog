@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 from flowtog.filetype import get_file_type
-from flowtog.path_utils import get_directory, get_filename, get_filename_stem
 
 if TYPE_CHECKING:
     from flowtog.collectiondirectories import DirectoryType
@@ -19,7 +18,7 @@ class CollectionFile(os.PathLike[str]):
     filename: str
     filename_stem: str
     file_type: FileType
-    directory: str
+    directory: Path
     directory_type: DirectoryType
     is_edit: bool
     edit_num: int
@@ -33,13 +32,14 @@ class CollectionFile(os.PathLike[str]):
                              directory_type: DirectoryType,
                              is_edit: bool,
                              edit_num: int) -> Self:
-        stat = direntry.stat()
+        path = Path(direntry.path)
+        stat = direntry.stat()  # Use the cached stat_result in direntry so we don't need to make another system call
         return cls(
-            path=Path(direntry.path),
-            filename=get_filename(direntry),
-            filename_stem=get_filename_stem(direntry),
-            file_type=get_file_type(direntry),
-            directory=get_directory(direntry),
+            path=path,
+            filename=path.name,
+            filename_stem=path.stem,
+            file_type=get_file_type(path),
+            directory=path.parent,
             directory_type=directory_type,
             is_edit=is_edit,
             edit_num=edit_num,
