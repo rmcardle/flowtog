@@ -70,7 +70,7 @@ def _has_multiple_files(group: FileGroup) -> bool:
         if FileType.JPEG and group.has_edits:
             continue
 
-        files = group.files_by_type[file_type]
+        files = group.file_type_to_files[file_type]
         if len(files) > 1:
             log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
             has_multiple = True
@@ -80,7 +80,7 @@ def _has_multiple_files(group: FileGroup) -> bool:
 
 def _is_selected(group: FileGroup, collection_metadata: CollectionMetadata, selected_rating: int) -> bool:
     if FileType.XMP in group.file_types:
-        if not (xmp_files := group.files_by_type[FileType.XMP]):
+        if not (xmp_files := group.file_type_to_files[FileType.XMP]):
             raise AssertionError
 
         if len(xmp_files) != 1:
@@ -106,19 +106,19 @@ def _move_sorted_group(group: FileGroup, directories: CollectionDirectories, *, 
         moves += _get_moves(group.files, directories[DirectoryType.REJECTED])
     else:
         if FileType.OTHER in group.file_types:
-            files = group.files_by_type[FileType.OTHER]
+            files = group.file_type_to_files[FileType.OTHER]
             log_file_path(_LOG, logging.ERROR, f"Ignoring {group.group_name} - Group has other files", files)
             return
 
-        moves += _get_moves(group.files_by_type[FileType.RAW], directories[DirectoryType.RAW])
+        moves += _get_moves(group.file_type_to_files[FileType.RAW], directories[DirectoryType.RAW])
 
         if group.has_edits:
             moves += _get_edit_moves(group, directories)
         else:
             # Move XMP files first so that any programs watching the photos dir can read the
             # XMP file as soon as the JPEG file appears
-            moves += _get_moves(group.files_by_type[FileType.XMP], directories[DirectoryType.PHOTOS])
-            moves += _get_moves(group.files_by_type[FileType.JPEG], directories[DirectoryType.PHOTOS])
+            moves += _get_moves(group.file_type_to_files[FileType.XMP], directories[DirectoryType.PHOTOS])
+            moves += _get_moves(group.file_type_to_files[FileType.JPEG], directories[DirectoryType.PHOTOS])
 
     if existing_destination_files := [move.destination_file for move in moves if move.destination_file.exists()]:
         log_file_path(

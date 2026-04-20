@@ -43,8 +43,7 @@ class CollectionConfig:
         # Use __setattr__ to avoid FrozenInstanceError
         object.__setattr__(self, "filename_pattern", re.compile(self.filename_regex))
 
-    @property
-    def directories(self) -> dict[str, Path]:
+    def get_directory_field_name_to_path(self) -> dict[str, Path]:
         return {f.name: getattr(self, f.name) for f in self.directory_fields}
 
     @property

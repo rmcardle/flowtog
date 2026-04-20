@@ -38,9 +38,9 @@ class CollectionFiles:
 
     _group_names: list[str] = field(init=False)
     last_group_num: int = field(init=False)
-    _groups_by_name: dict[str, FileGroup] = field(init=False)
-    _groups_by_directory_type: dict[DirectoryType, list[FileGroup]] = field(init=False)
-    _xmp_files_by_directory_type: dict[DirectoryType, list[CollectionFile]] = field(init=False)
+    _group_name_to_group: dict[str, FileGroup] = field(init=False)
+    _directory_type_to_groups: dict[DirectoryType, list[FileGroup]] = field(init=False)
+    _directory_type_to_xmp_files: dict[DirectoryType, list[CollectionFile]] = field(init=False)
 
     @classmethod
     def from_collection(cls, collection: CollectionConfig) -> Self:
@@ -55,8 +55,8 @@ class CollectionFiles:
 
     def _init_files_from_collection(self) -> None:
         group_names: set[str] = set()
-        files_by_group_name: dict[str, list[CollectionFile]] = defaultdict(list)
-        xmp_files_by_directory_type: dict[DirectoryType, list[CollectionFile]] = defaultdict(list)
+        group_name_to_files: dict[str, list[CollectionFile]] = defaultdict(list)
+        directory_type_to_xmp_files: dict[DirectoryType, list[CollectionFile]] = defaultdict(list)
 
         for directory_entry in _get_directory_entries(self.directories.valid_directories):
             if not (directory_entry.is_file()
@@ -65,16 +65,16 @@ class CollectionFiles:
 
             group_names.add(group_name)
             file = self._create_collection_file(directory_entry)
-            files_by_group_name[group_name].append(file)
+            group_name_to_files[group_name].append(file)
 
             if (file.file_type == FileType.XMP
                     and file.directory_type in _XMP_FILE_DIRECTORY_TYPES):
-                xmp_files_by_directory_type[file.directory_type].append(file)
+                directory_type_to_xmp_files[file.directory_type].append(file)
 
         sorted_group_names = sorted(group_names)
         last_group_num = self.collection.start_num - 1
-        groups_by_name: dict[str, FileGroup] = {}
-        groups_by_directory_type: dict[DirectoryType, list[FileGroup]] = defaultdict(list)
+        group_name_to_group: dict[str, FileGroup] = {}
+        directory_type_to_groups: dict[DirectoryType, list[FileGroup]] = defaultdict(list)
 
         for group_name in sorted_group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
@@ -82,20 +82,20 @@ class CollectionFiles:
                 continue
 
             last_group_num = max(last_group_num, group_num)
-            group_files = files_by_group_name[group_name]
+            group_files = group_name_to_files[group_name]
             group = FileGroup.from_files(group_name, group_num, group_files)
-            groups_by_name[group_name] = group
+            group_name_to_group[group_name] = group
 
             directory_type = group_files[0].directory_type
             if all(file.directory_type == directory_type for file in group_files):
-                groups_by_directory_type[directory_type].append(group)
+                directory_type_to_groups[directory_type].append(group)
 
         # Use __setattr__ to avoid FrozenInstanceError
         object.__setattr__(self, "_group_names", sorted_group_names)
         object.__setattr__(self, "last_group_num", last_group_num)
-        object.__setattr__(self, "_groups_by_name", groups_by_name)
-        object.__setattr__(self, "_groups_by_directory_type", groups_by_directory_type)
-        object.__setattr__(self, "_xmp_files_by_directory_type", xmp_files_by_directory_type)
+        object.__setattr__(self, "_group_name_to_group", group_name_to_group)
+        object.__setattr__(self, "_directory_type_to_groups", directory_type_to_groups)
+        object.__setattr__(self, "_directory_type_to_xmp_files", directory_type_to_xmp_files)
 
     def _create_collection_file(self,
                                 direntry: os.DirEntry[str]) -> CollectionFile:
@@ -125,14 +125,14 @@ class CollectionFiles:
         return self._filename_parser.get_file_num(group_name)
 
     def get_group_by_name(self, group_name: str) -> FileGroup | None:
-        return self._groups_by_name.get(group_name)
+        return self._group_name_to_group.get(group_name)
 
     def get_group_by_num(self, group_num: int) -> FileGroup | None:
         return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
 
     def get_groups_by_directory(self, directory_type: DirectoryType) -> list[FileGroup]:
         if directory_type in _GROUP_DIRECTORY_TYPES:
-            return self._groups_by_directory_type[directory_type]
+            return self._directory_type_to_groups[directory_type]
         raise NotImplementedError
 
     def get_directory_files_by_type(self,
@@ -140,7 +140,7 @@ class CollectionFiles:
                                     file_type: FileType) -> list[CollectionFile]:
         if (file_type == FileType.XMP
                 and directory_type in _XMP_FILE_DIRECTORY_TYPES):
-            return self._xmp_files_by_directory_type[directory_type]
+            return self._directory_type_to_xmp_files[directory_type]
         raise NotImplementedError
 
 

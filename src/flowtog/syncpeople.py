@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.collectionmetadata import CollectionMetadata
-    from flowtog.metadatasession import MetadataByType
+    from flowtog.metadatasession import MetadataTypeToValues
 
 _LOG = logging.getLogger(__name__)
 
@@ -36,27 +36,29 @@ def sync_people(collection_files: CollectionFiles, collection_metadata: Collecti
 
 
 def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMetadata) -> None:
-    current_metadata_by_type = collection_metadata.get_metadata(file)
+    current_metadata_type_to_values = collection_metadata.get_metadata(file)
 
-    current_people = _get_set_from_metadata_by_type(current_metadata_by_type, MetadataType.PERSON_IN_IMAGE)
-    current_flat_keywords = _get_set_from_metadata_by_type(current_metadata_by_type, MetadataType.SUBJECT)
-    current_hierarchical_keywords = _get_set_from_metadata_by_type(current_metadata_by_type,
-                                                                   MetadataType.HIERARCHICAL_SUBJECT)
+    current_people = _get_set_from_metadata_type_to_values(current_metadata_type_to_values,
+                                                           MetadataType.PERSON_IN_IMAGE)
+    current_flat_keywords = _get_set_from_metadata_type_to_values(current_metadata_type_to_values,
+                                                                  MetadataType.SUBJECT)
+    current_hierarchical_keywords = _get_set_from_metadata_type_to_values(current_metadata_type_to_values,
+                                                                          MetadataType.HIERARCHICAL_SUBJECT)
 
     new_hierarchical_keywords, new_flat_keywords = _calculate_new_keywords(current_people,
                                                                            current_flat_keywords,
                                                                            current_hierarchical_keywords)
 
-    new_metadata_by_type: MetadataByType = {}
+    new_metadata_type_to_values: MetadataTypeToValues = {}
     if current_hierarchical_keywords != new_hierarchical_keywords:
-        new_metadata_by_type[MetadataType.HIERARCHICAL_SUBJECT] = list(new_hierarchical_keywords)
+        new_metadata_type_to_values[MetadataType.HIERARCHICAL_SUBJECT] = list(new_hierarchical_keywords)
     if current_flat_keywords != new_flat_keywords:
-        new_metadata_by_type[MetadataType.SUBJECT] = list(new_flat_keywords)
+        new_metadata_type_to_values[MetadataType.SUBJECT] = list(new_flat_keywords)
 
-    if not new_metadata_by_type:
+    if not new_metadata_type_to_values:
         return
 
-    collection_metadata.set_metadata(file, new_metadata_by_type)
+    collection_metadata.set_metadata(file, new_metadata_type_to_values)
 
     _log_keyword_changes(file,
                          current_hierarchical_keywords,
@@ -65,9 +67,9 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
                          new_flat_keywords)
 
 
-def _get_set_from_metadata_by_type(metadata_by_type: MetadataByType,
-                                   metadata_type: MetadataType) -> set[str]:
-    if (value := metadata_by_type.get(metadata_type)) is None:
+def _get_set_from_metadata_type_to_values(metadata_type_to_values: MetadataTypeToValues,
+                                          metadata_type: MetadataType) -> set[str]:
+    if (value := metadata_type_to_values.get(metadata_type)) is None:
         return set()
 
     if isinstance(value, list):

@@ -53,7 +53,7 @@ class CollectionValidator:
 
     def _validate_group(self, group: FileGroup) -> None:
         for file_type in group.file_types:
-            files = group.files_by_type[file_type]
+            files = group.file_type_to_files[file_type]
             if file_type == FileType.JPEG and group.has_edits:
                 self._validate_edits(group, files)
             elif file_type == FileType.OTHER:
@@ -97,10 +97,10 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_missing(group: FileGroup) -> None:
-        if len(group.files_by_type[FileType.RAW]) < 1:
+        if len(group.file_type_to_files[FileType.RAW]) < 1:
             _LOG.error(f"{group.group_name}: Missing RAW file")
 
-        if len(group.files_by_type[FileType.JPEG]) < 1:
+        if len(group.file_type_to_files[FileType.JPEG]) < 1:
             _LOG.error(f"{group.group_name}: Missing JPEG file")
 
     @staticmethod
@@ -108,15 +108,15 @@ class CollectionValidator:
         if FileType.XMP not in group.file_types:
             return
 
-        jpeg_files_by_filename_stem: dict[str, list[CollectionFile]] = defaultdict(list)
-        for jpeg_file in group.files_by_type[FileType.JPEG]:
-            jpeg_files_by_filename_stem[jpeg_file.filename_stem].append(jpeg_file)
+        filename_stem_to_jpeg_files: dict[str, list[CollectionFile]] = defaultdict(list)
+        for jpeg_file in group.file_type_to_files[FileType.JPEG]:
+            filename_stem_to_jpeg_files[jpeg_file.filename_stem].append(jpeg_file)
 
         invalid_xmp_files = [
-            xmp_file for xmp_file in group.files_by_type[FileType.XMP]
+            xmp_file for xmp_file in group.file_type_to_files[FileType.XMP]
             if not any(
                 xmp_file.directory == jpeg_file.directory
-                for jpeg_file in jpeg_files_by_filename_stem[xmp_file.filename_stem]
+                for jpeg_file in filename_stem_to_jpeg_files[xmp_file.filename_stem]
             )
         ]
 
@@ -133,11 +133,11 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_edit_duplicates(group: FileGroup, group_files: list[CollectionFile]) -> None:
-        files_by_name: dict[str, list[CollectionFile]] = defaultdict(list)
+        filename_to_files: dict[str, list[CollectionFile]] = defaultdict(list)
         for file in group_files:
-            files_by_name[file.filename].append(file)
+            filename_to_files[file.filename].append(file)
 
-        for filename, files in files_by_name.items():
+        for filename, files in filename_to_files.items():
             if len(files) > 1:
                 log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Duplicates of {filename}", files)
 

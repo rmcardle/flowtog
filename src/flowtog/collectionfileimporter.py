@@ -93,7 +93,7 @@ def _get_last_raw_size_and_modified_time(collection_files: CollectionFiles) -> t
         # If the collection is empty, we can return None, otherwise there's a problem
         assert collection_files.group_count == 0
         return None, None
-    raw_files = last_group.files_by_type[FileType.RAW]
+    raw_files = last_group.file_type_to_files[FileType.RAW]
     if len(raw_files) != 1:
         raise AssertionError
     raw_file = raw_files[0]
