@@ -19,6 +19,7 @@ from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
+from flowtog.sonyimagingedge import SonyImagingEdge
 from flowtog.syncpeople import sync_people
 
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
@@ -41,6 +42,9 @@ def _main() -> None:
             _LOG.error("ExifTool not found")
             return
 
+        if args.edit:
+            SonyImagingEdge.launch(args.edit)
+            return
 
         while _show_main_menu():
             pass
@@ -53,6 +57,7 @@ def _show_main_menu() -> bool:
             "_Import photos from media",
             "_Move sorted photos",
             "Move selected photo to _rejected",
+            "Launch Sony Imaging Edge _Edit",
             "_Sync people to keywords",
             "_Validate collection",
             None,
@@ -69,6 +74,8 @@ def _show_main_menu() -> bool:
             _move_sorted_files()
         case "r":
             _move_to_rejected()
+        case "e":
+            _edit_raw()
         case "s":
             _sync_people()
         case "v":
@@ -123,6 +130,25 @@ def _move_to_rejected() -> None:
 
             move_to_rejected(group, config.collection)
             print()  # noqa: T201 print
+
+
+def _edit_raw() -> None:
+    with LogStartExit(_LOG, logging.DEBUG, "Launch Sony Imaging Edge Edit"):
+        config = Config.load(_root_dir)
+        collection_files = CollectionFiles.from_collection(config.collection)
+
+        while True:
+            group = _prompt_for_group(collection_files)
+            if not isinstance(group, FileGroup):
+                return
+
+            if (FileType.RAW in group.file_types
+                    and (raw_files := group.file_type_to_files[FileType.RAW])
+                    and len(raw_files) == 1):
+                raw_file = raw_files[0]
+                break
+
+        SonyImagingEdge.launch(raw_file.path)
 
 
 def _sync_people() -> None:
@@ -227,6 +253,11 @@ def _parse_arguments() -> argparse.Namespace:
                         type=Path,
                         help="collection directory",
                         metavar="DIR")
+
+    parser.add_argument("-e", "--edit",
+                        type=Path,
+                        help="edit FILE with Sony Imaging Edge Edit",
+                        metavar="FILE")
 
     parser.add_argument("-h", "--help", action="help", help="show this help message and exit")
     parser.add_argument("-v", "--version", action="version", version=version_message)
