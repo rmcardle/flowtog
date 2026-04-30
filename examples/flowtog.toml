@@ -1,0 +1,12 @@
+# [collection]
+# filename-regex = "^(?P<group_name>DSC(?P<file_num>\\d{5}))(?:-(?P<edit_num>\\d+))?$"
+# filename-format = "DSC{file_num:05d}"
+# originals-dir = "Originals"
+# photos-dir = "Photos"
+# previous-edits-dir = "Previous Edits"
+# raw-dir = "Raw"
+# rejected-dir = "Rejected"
+# unsorted-dir = "Unsorted"
+# start-num = 1
+# selected_rating = 3
+
