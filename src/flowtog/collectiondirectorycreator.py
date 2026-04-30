@@ -13,8 +13,6 @@ _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def create_directories(collection: CollectionConfig) -> None:
-    _LOG.debug("Create directories")
-
     existing_dirs, dirs_to_create = _get_directories(collection)
 
     _display_directories(existing_dirs, dirs_to_create)

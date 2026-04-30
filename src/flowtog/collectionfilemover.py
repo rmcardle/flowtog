@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from flowtog.collectiondirectories import CollectionDirectories, DirectoryType
 from flowtog.filetype import FileType
@@ -16,15 +16,13 @@ if TYPE_CHECKING:
     from flowtog.config import CollectionConfig
     from flowtog.filegroup import FileGroup
 
-_LOG = logging.getLogger(__name__)
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def move_sorted_files(collection_files: CollectionFiles,
                       collection_metadata: CollectionMetadata,
                       *,
                       last_group: FileGroup | None = None) -> None:
-    _LOG.debug("Move sorted photos")
-
     directories = collection_files.directories
     if _has_missing_directories(directories[DirectoryType.REJECTED],
                                 directories[DirectoryType.RAW],
@@ -43,8 +41,6 @@ def move_sorted_files(collection_files: CollectionFiles,
 
 
 def move_to_rejected(group: FileGroup, collection: CollectionConfig) -> None:
-    _LOG.debug("Move selected photo to rejected")
-
     directories = CollectionDirectories.from_collection(collection)
     if _has_missing_directories(directories[DirectoryType.REJECTED]):
         return

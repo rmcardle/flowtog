@@ -13,7 +13,7 @@ from flowtog.filetype import FileType
 if TYPE_CHECKING:
     from flowtog.collectionfiles import CollectionFiles
 
-_LOG = logging.getLogger(__name__)
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 # https://web.archive.org/web/20180517065732/http://cipa.jp/std/documents/e/DC-009-2010_E.pdf
 _DCIM_DIR_NAME: Final[str] = "DCIM"
@@ -101,8 +101,6 @@ def _get_last_raw_size_and_modified_time(collection_files: CollectionFiles) -> t
 
 
 def import_files(collection_files: CollectionFiles) -> None:
-    _LOG.debug("Import photos from media")
-
     state = _ImportState(collection_files)
 
     if not state.unsorted_dir.exists():

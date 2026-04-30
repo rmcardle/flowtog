@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from flowtog.collectionmetadata import CollectionMetadata
     from flowtog.metadatasession import MetadataTypeToValues
 
-_LOG = logging.getLogger(__name__)
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 _HIERARCHY_PARENTS: Final[list[str]] = ["People"]
 _HIERARCHY_SEPARATOR: Final[str] = "|"
@@ -25,8 +25,6 @@ _KEYWORD_PREFIX: Final[str] = (
 
 
 def sync_people(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
-    _LOG.debug("Sync people to keywords")
-
     if not (xmp_files := collection_files.get_directory_files_by_type(DirectoryType.PHOTOS, FileType.XMP)):
         _LOG.warning("No XMP files found in Photos directory")
         return

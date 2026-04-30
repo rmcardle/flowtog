@@ -17,7 +17,7 @@ type MetadataScalar = str | int
 type MetadataValue = MetadataScalar | list[MetadataScalar]
 type MetadataTypeToValues = dict[MetadataType, MetadataValue]
 
-_LOG = logging.getLogger(__name__)
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 _EXIFTOOL_ARGS: Final[list[str]] = [
     "-G1",  # Print the specific location group name for each tag (e.g. "XMP-dc:Subject" instead of just "Subject")
@@ -85,7 +85,7 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
 def validate_exiftool() -> bool:
     try:
         with ExifTool() as exif_tool:
-            version = exif_tool.execute("-ver")
+            version = exif_tool.execute("-ver").strip()
             _LOG.debug(f"ExifTool version {version}")
             return True
     except FileNotFoundError:
