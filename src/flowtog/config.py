@@ -1,10 +1,11 @@
 import re
+from collections import defaultdict
 from collections.abc import (
     Mapping,  # noqa: TC003 typing-only-standard-library-import  # Used at runtime by dataclass_binder
 )
 from dataclasses import Field, dataclass, field, fields
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Self
+from typing import TYPE_CHECKING, Any, Final, Self
 
 import win32com.client
 from dataclass_binder import Binder
@@ -52,14 +53,41 @@ class CollectionConfig:
 
 
 @dataclass(frozen=True)
-class Person:
-    groups: list[str] = field(default_factory=list[str])
+class GroupConfig:
+    hierarchical_keyword: list[str] = field(default_factory=list)
+    keyword_include_person: bool = field(default=False)
+
+
+@dataclass(frozen=True)
+class CategoryConfig:
+    groups: list[str] = field(default_factory=list)
+    required: bool = field(default=False)
+    default_group: str | None = field(default=None)
+    allow_multiple: bool = field(default=True)
+    report: bool = field(default=False)
+    keyword_include_person: bool = field(default=False)
+
+
+@dataclass(frozen=True)
+class PersonConfig:
+    groups: list[str] = field(default_factory=list)
+    categories: Mapping[str, list[str]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RawConfig:
+    collection: CollectionConfig = field(default_factory=CollectionConfig)
+    categories: Mapping[str, CategoryConfig] = field(default_factory=dict)
+    groups: Mapping[str, GroupConfig] = field(default_factory=dict)
+    people: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class Config:
-    collection: CollectionConfig
-    people: Mapping[str, Person] = field(default_factory=dict[str, Person])
+    collection: CollectionConfig = field(default_factory=CollectionConfig)
+    categories: Mapping[str, CategoryConfig] = field(default_factory=dict)
+    groups: Mapping[str, GroupConfig] = field(default_factory=dict)
+    people: Mapping[str, PersonConfig] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: str | os.PathLike[str] | Path) -> Self:
@@ -67,11 +95,45 @@ class Config:
         if load_path.is_dir():
             load_path /= _CONFIG_FILE_NAME
 
-        config = Binder(cls).parse_toml(load_path) \
+        raw_config = Binder(RawConfig).parse_toml(load_path) \
             if load_path.is_file() \
-            else cls(
-                collection=CollectionConfig(),
+            else RawConfig()
+
+        people: dict[str, PersonConfig] = {}
+        person_field_names = {f.name for f in fields(PersonConfig) if f.name != "categories"}
+        category_names = set(raw_config.categories)
+
+        for name, person in raw_config.people.items():
+            groups = person.get("groups", [])
+            if not isinstance(groups, list) or not all(isinstance(x, str) for x in groups):
+                raise TypeError(f'The value of people."{name}".groups is not a list of strings')
+
+            person_fields: dict[str, Any] = {}
+            categories: dict[str, list[str]] = defaultdict(list)
+            for key, value in person.items():
+                if key in person_field_names:
+                    person_fields[key] = value
+                    continue
+                if key not in category_names:
+                    raise ValueError(f'Invalid category name "{key}" in people."{name}"')
+                if not (isinstance(value, str)
+                        or (isinstance(value, list)
+                            and all(isinstance(x, str) for x in value))):
+                    raise TypeError(f'The value of people."{name}"."{key}" is not a string or list of strings')
+                categories[key] = value if isinstance(value, list) else [value]
+
+            people[name] = PersonConfig(
+                **person_fields,
+                categories=categories,
             )
+
+        config = cls(
+            collection=raw_config.collection,
+            categories=raw_config.categories,
+            groups=raw_config.groups,
+            people=people,
+        )
+
         config._normalize_paths(load_path.parent)  # noqa: SLF001 private-member-access
 
         return config
