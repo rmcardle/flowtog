@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Final, Self
 from exiftool import ExifTool, ExifToolHelper  # pyright: ignore [reportMissingTypeStubs]
 
 from flowtog.metadatatype import MetadataType
+from flowtog.typing_utils import is_str_list
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -110,7 +111,5 @@ def _get_metadata_type_to_values(tags: Mapping[str, Any]) -> MetadataTypeToValue
 
 
 def _validate_metadata_value_type(value: Any) -> None:  # noqa: ANN401 any-type
-    if not (isinstance(value, str | int)
-            or ((isinstance(value, list))
-                and all(isinstance(i, str | int) for i in value))):  # pyright: ignore [reportUnknownVariableType]
+    if not (isinstance(value, str | int) or is_str_list(value)):
         raise TypeError

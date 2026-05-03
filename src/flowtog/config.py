@@ -1,6 +1,6 @@
 import re
 from collections.abc import (
-    Mapping,  # noqa: TC003 typing-only-standard-library-import  # Used at runtime by dataclass_binder
+    Mapping,
 )
 from dataclasses import Field, dataclass, field, fields
 from pathlib import Path
@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, Final, Self
 
 import win32com.client
 from dataclass_binder import Binder
+
+from flowtog.typing_utils import is_str_list
 
 if TYPE_CHECKING:
     import os
@@ -81,7 +83,7 @@ class CategoryConfig:
 @dataclass(frozen=True)
 class PersonConfig:
     groups: tuple[str, ...] = field(default_factory=tuple)
-    categories: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    categories: Mapping[str, tuple[str, ...]] = field(default_factory=dict[str, tuple[str, ...]])
 
     def __post_init__(self) -> None:
         # Make fields deeply immutable
@@ -108,17 +110,17 @@ class PersonConfig:
 @dataclass(frozen=True)
 class _RawConfig:
     collection: CollectionConfig = field(default_factory=CollectionConfig)
-    categories: Mapping[str, CategoryConfig] = field(default_factory=dict)
-    groups: Mapping[str, GroupConfig] = field(default_factory=dict)
-    people: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    categories: Mapping[str, CategoryConfig] = field(default_factory=dict[str, CategoryConfig])
+    groups: Mapping[str, GroupConfig] = field(default_factory=dict[str, GroupConfig])
+    people: Mapping[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
 
 
 @dataclass(frozen=True)
 class Config:
     collection: CollectionConfig = field(default_factory=CollectionConfig)
-    categories: Mapping[str, CategoryConfig] = field(default_factory=dict)
-    groups: Mapping[str, GroupConfig] = field(default_factory=dict)
-    people: Mapping[str, PersonConfig] = field(default_factory=dict)
+    categories: Mapping[str, CategoryConfig] = field(default_factory=dict[str, CategoryConfig])
+    groups: Mapping[str, GroupConfig] = field(default_factory=dict[str, GroupConfig])
+    people: Mapping[str, PersonConfig] = field(default_factory=dict[str, PersonConfig])
 
     def __post_init__(self) -> None:
         # Make fields deeply immutable
@@ -177,18 +179,18 @@ class Config:
     @classmethod
     def _get_person(cls,
                     person_name: str,
-                    person_data: Mapping[str, Any],
+                    person_data: Mapping[str, object],
                     raw_config: _RawConfig) -> PersonConfig:
         person_field_names = {f.name for f in fields(PersonConfig) if f.name != "categories"}
         category_names = set(raw_config.categories)
 
         groups = person_data.get("groups", [])
-        if not isinstance(groups, list) or not all(isinstance(x, str) for x in groups):
+        if not is_str_list(groups):
             msg = f'The value of people."{person_name}".groups is not a list of strings'
             raise TypeError(msg)
 
         person_fields: dict[str, Any] = {}
-        categories: dict[str, tuple[str]] = {}
+        categories: dict[str, tuple[str, ...]] = {}
         for key, value in person_data.items():
             if key in person_field_names:
                 person_fields[key] = value
@@ -196,9 +198,7 @@ class Config:
             if key not in category_names:
                 msg = f'Invalid category name "{key}" in people."{person_name}"'
                 raise ValueError(msg)
-            if not (isinstance(value, str)
-                    or (isinstance(value, list)
-                        and all(isinstance(x, str) for x in value))):
+            if not (isinstance(value, str) or is_str_list(value)):
                 msg = f'The value of people."{person_name}"."{key}" is not a string or list of strings'
                 raise TypeError(msg)
             categories[key] = tuple(value) if isinstance(value, list) else (value,)

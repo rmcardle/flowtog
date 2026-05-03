@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Final
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.filetype import FileType
 from flowtog.metadatatype import MetadataType
+from flowtog.typing_utils import is_all_str
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -77,10 +78,9 @@ def _get_set_from_metadata_type_to_values(metadata_type_to_values: MetadataTypeT
         return set()
 
     if isinstance(value, list):
-        if not all(isinstance(i, str) for i in value):
+        if not is_all_str(value):
             raise TypeError
-        # noinspection PyTypeChecker
-        return set(value)  # pyright: ignore [reportReturnType]
+        return set(value)
 
     if not isinstance(value, str):
         raise TypeError
