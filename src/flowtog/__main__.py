@@ -19,9 +19,9 @@ from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
+from flowtog.peoplekeywordsync import sync_people
 from flowtog.peoplereporter import report_people
 from flowtog.sonyimagingedge import SonyImagingEdge
-from flowtog.peoplekeywordsync import sync_people
 
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
 _LOG.setLevel(logging.INFO)
