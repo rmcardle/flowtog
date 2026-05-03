@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING, Final
 
 from flowtog.collectiondirectories import DirectoryType
@@ -24,16 +25,21 @@ _KEYWORD_PREFIX: Final[str] = (
 )
 
 
-def sync_people(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> None:
+def sync_people(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> Counter[str]:
     if not (xmp_files := collection_files.get_directory_files_by_type(DirectoryType.PHOTOS, FileType.XMP)):
         _LOG.warning("No XMP files found in Photos directory")
-        return
+        return Counter()
+
+    people_counts: Counter[str] = Counter()
 
     for xmp_file in xmp_files:
-        _sync_people_in_file(xmp_file, collection_metadata)
+        people = _sync_people_in_file(xmp_file, collection_metadata)
+        people_counts.update(people)
+
+    return people_counts
 
 
-def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMetadata) -> None:
+def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMetadata) -> set[str]:
     current_metadata_type_to_values = collection_metadata.get_metadata(file)
 
     current_people = _get_set_from_metadata_type_to_values(current_metadata_type_to_values,
@@ -53,16 +59,16 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
     if current_flat_keywords != new_flat_keywords:
         new_metadata_type_to_values[MetadataType.SUBJECT] = list(new_flat_keywords)
 
-    if not new_metadata_type_to_values:
-        return
+    if new_metadata_type_to_values:
+        collection_metadata.set_metadata(file, new_metadata_type_to_values)
 
-    collection_metadata.set_metadata(file, new_metadata_type_to_values)
+        _log_keyword_changes(file,
+                             current_hierarchical_keywords,
+                             new_hierarchical_keywords,
+                             current_flat_keywords,
+                             new_flat_keywords)
 
-    _log_keyword_changes(file,
-                         current_hierarchical_keywords,
-                         new_hierarchical_keywords,
-                         current_flat_keywords,
-                         new_flat_keywords)
+    return current_people
 
 
 def _get_set_from_metadata_type_to_values(metadata_type_to_values: MetadataTypeToValues,

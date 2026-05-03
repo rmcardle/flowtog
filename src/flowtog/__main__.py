@@ -19,6 +19,7 @@ from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
+from flowtog.peoplereporter import report_people
 from flowtog.sonyimagingedge import SonyImagingEdge
 from flowtog.syncpeople import sync_people
 
@@ -161,7 +162,8 @@ def _sync_people() -> None:
                                                                            DirectoryType.PHOTOS,
                                                                            metadata_session)
 
-            sync_people(collection_files, collection_metadata)
+            people_counts = sync_people(collection_files, collection_metadata)
+            report_people(people_counts, config)
 
 
 def _validate_collection() -> None:
