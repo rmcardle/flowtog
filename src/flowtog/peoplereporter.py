@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
@@ -10,7 +11,7 @@ _REPORT_FILE_NAME: Final[str] = "people.txt"
 
 
 def report_people(people_counts: Counter[str], config: Config) -> None:
-    lines: list[str] = []
+    lines: list[str] = [datetime.now(tz=UTC).astimezone().strftime("%A, %B %d, %Y, %I:%M %p %Z")]
 
     for category_name, category in config.categories.items():
         if not category.report:
@@ -23,7 +24,9 @@ def report_people(people_counts: Counter[str], config: Config) -> None:
             lines.append("")
 
         if len(config.categories) > 1:
-            lines.append(category_name)
+            lines.append(category_name.title())
+            lines.append("=" * len(category_name))
+            lines.append("")
 
         lines.extend(category_lines)
 
@@ -58,7 +61,7 @@ def _report_category(people_counts: Counter[str],
 
         lines.append(group_name)
         for person_name, count in group_people_counts:
-            lines.append(f"{person_name}: {count}")
+            lines.append(f"\t{count}\t{person_name}")
 
     return lines
 
