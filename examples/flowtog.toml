@@ -10,3 +10,21 @@
 # start-num = 1
 # selected_rating = 3
 
+# [people]
+# "John Doe".groups = ["Foo Bar"]
+# "John Doe".bat = "Baz"
+
+# [people."John Doe"]
+# groups = ["Foo Bar"]
+# bat = "Baz"
+
+# [groups."Foo Bar"]
+# hierarchical_keyword = ["Foo", "Bar"]
+# keyword-include-person = true
+
+# [categories.bat]
+# groups = ["Baz", "Qux", "Corge"]
+# required = true
+# default-group = "Baz"
+# report = true
+# keyword-include-person = true
