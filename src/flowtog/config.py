@@ -15,7 +15,7 @@ from flowtog.typing_utils import is_str_list
 if TYPE_CHECKING:
     import os
 
-_CONFIG_FILE_NAME: Final[str] = "flowtog.toml"
+_DEFAULT_CONFIG_FILE_NAME: Final[str] = "flowtog.toml"
 _DEFAULT_FILENAME_REGEX: Final[str] = r"^(?P<group_name>DSC(?P<file_num>\d{5}))(?:-(?P<edit_num>\d+))?$"
 _DEFAULT_FILENAME_FORMAT: Final[str] = "DSC{file_num:05d}"
 
@@ -117,6 +117,7 @@ class _RawConfig:
 
 @dataclass(frozen=True)
 class Config:
+    base_dir: Path = field(default_factory=Path)
     collection: CollectionConfig = field(default_factory=CollectionConfig)
     categories: Mapping[str, CategoryConfig] = field(default_factory=dict[str, CategoryConfig])
     groups: Mapping[str, GroupConfig] = field(default_factory=dict[str, GroupConfig])
@@ -132,15 +133,27 @@ class Config:
     @classmethod
     def load(cls, path: str | os.PathLike[str] | Path) -> Self:
         load_path = Path(path)
-        if load_path.is_dir():
-            load_path /= _CONFIG_FILE_NAME
 
-        raw_config = Binder(_RawConfig).parse_toml(load_path) \
-            if load_path.is_file() \
+        if not load_path.exists():
+            raise FileNotFoundError(load_path)
+
+        if load_path.is_dir():
+            config_path = load_path / _DEFAULT_CONFIG_FILE_NAME
+        elif load_path.is_file():
+            config_path = load_path
+        else:
+            msg = f'Path "{load_path}" is not a directory or regular file'
+            raise ValueError(msg)
+
+        base_dir = config_path.parent
+
+        raw_config = Binder(_RawConfig).parse_toml(config_path) \
+            if config_path.is_file() \
             else _RawConfig()
 
         config = cls(
-            collection=cls._get_normalized_collection(raw_config.collection, load_path.parent),
+            base_dir=base_dir,
+            collection=cls._get_normalized_collection(raw_config.collection, base_dir),
             categories=raw_config.categories,
             groups=raw_config.groups,
             people=cls._get_people(raw_config),

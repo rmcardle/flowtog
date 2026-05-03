@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from collections import Counter
-    from pathlib import Path
 
     from flowtog.config import CategoryConfig, Config
 
@@ -30,8 +29,8 @@ def report_people(people_counts: Counter[str], config: Config) -> None:
 
         lines.extend(category_lines)
 
-    report_path = _get_report_path(config)
-    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    report_file = config.base_dir / _REPORT_FILE_NAME
+    report_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _report_category(people_counts: Counter[str],
@@ -76,7 +75,3 @@ def _get_category_groups(person_name: str, category_name: str, config: Config) -
         return (category.default_group,)
 
     return ()
-
-
-def _get_report_path(config: Config) -> Path:
-    return config.collection.photos_dir.parent / _REPORT_FILE_NAME
