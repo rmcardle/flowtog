@@ -56,8 +56,9 @@ class CollectionConfig:
 
 @dataclass(frozen=True)
 class GroupConfig:
-    hierarchical_keyword: tuple[str, ...] = field(default_factory=tuple)
+    report: bool = field(default=False)
     keyword_include_person: bool = field(default=False)
+    hierarchical_keyword: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         # Make fields deeply immutable
@@ -73,6 +74,7 @@ class CategoryConfig:
     allow_multiple: bool = field(default=False)
     report: bool = field(default=False)
     keyword_include_person: bool = field(default=False)
+    hierarchical_keyword_prefix: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         # Make fields deeply immutable
@@ -279,6 +281,17 @@ class Config:
             if group_name not in all_group_names:
                 msg = f'Unknown group "{group_name}" for person "{person_name}"'
                 raise ValueError(msg)
+
+
+def get_person_category_groups(person: PersonConfig | None, category_name: str, config: Config) -> tuple[str, ...]:
+    if person and category_name in person.categories:
+        return person.categories[category_name]
+
+    category = config.categories[category_name]
+    if category.default_group:
+        return (category.default_group,)
+
+    return ()
 
 
 def _normalize_path(path: Path, base_dir: Path) -> Path:

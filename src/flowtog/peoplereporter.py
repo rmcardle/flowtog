@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Final
 
+from flowtog.config import get_person_category_groups
+
 if TYPE_CHECKING:
     from collections import Counter
 
@@ -22,12 +24,24 @@ def report_people(people_counts: Counter[str], config: Config) -> None:
         if lines:
             lines.append("")
 
-        if len(config.categories) > 1:
-            lines.append(category_name.title())
-            lines.append("=" * len(category_name))
-            lines.append("")
+        lines.append(category_name.title())
+        lines.append("=" * len(category_name))
+        lines.append("")
 
         lines.extend(category_lines)
+
+    for group_name, group in config.groups.items():
+        if not (group.report and (group_lines := _report_group(people_counts, group_name, config))):
+            continue
+
+        if lines:
+            lines.append("")
+
+        lines.append(group_name)
+        lines.append("=" * len(group_name))
+        lines.append("")
+
+        lines.extend(group_lines)
 
     report_file = config.base_dir / _REPORT_FILE_NAME
     report_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -41,37 +55,44 @@ def _report_category(people_counts: Counter[str],
 
     group_to_people: dict[str, list[tuple[str, int]]] = {group_name: [] for group_name in category.groups}
 
-    all_people = set(config.people) | set(people_counts)
+    all_people_names = set(config.people) | set(people_counts)
 
-    for person_name in all_people:
+    for person_name in all_people_names:
+        person = config.people.get(person_name)
         count = people_counts[person_name]
-        for group_name in _get_category_groups(person_name, category_name, config):
+        for group_name in get_person_category_groups(person, category_name, config):
             group_to_people[group_name].append((person_name, count))
 
     for group_name, group_people_counts in group_to_people.items():
         if not group_people_counts:
             continue
 
-        # Sort descending by count and then ascending by name
-        group_people_counts.sort(key=lambda item: (-item[1], item[0]))
-
         if lines:
             lines.append("")
 
         lines.append(group_name)
-        for person_name, count in group_people_counts:
-            lines.append(f"\t{count}\t{person_name}")
+        lines.extend(_get_people_count_lines(group_people_counts))
 
     return lines
 
 
-def _get_category_groups(person_name: str, category_name: str, config: Config) -> tuple[str, ...]:
-    person = config.people.get(person_name)
-    if person and category_name in person.categories:
-        return person.categories[category_name]
+def _report_group(people_counts: Counter[str],
+                  group_name: str,
+                  config: Config) -> list[str]:
+    group_people_names = {person_name for person_name, person in config.people.items() if group_name in person.groups}
 
-    category = config.categories[category_name]
-    if category.default_group:
-        return (category.default_group,)
+    group_people_counts = [(person_name, people_counts[person_name]) for person_name in group_people_names]
 
-    return ()
+    return _get_people_count_lines(group_people_counts)
+
+
+def _get_people_count_lines(people_counts: list[tuple[str, int]]) -> list[str]:
+    lines: list[str] = []
+
+    # Sort descending by count and then ascending by name
+    people_counts.sort(key=lambda item: (-item[1], item[0]))
+
+    for person_name, count in people_counts:
+        lines.append(f"\t{count}\t{person_name}")
+
+    return lines

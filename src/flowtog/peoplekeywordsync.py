@@ -3,6 +3,7 @@ from collections import Counter
 from typing import TYPE_CHECKING, Final
 
 from flowtog.collectiondirectories import DirectoryType
+from flowtog.config import get_person_category_groups
 from flowtog.filetype import FileType
 from flowtog.metadatatype import MetadataType
 from flowtog.typing_utils import is_all_str
@@ -13,20 +14,17 @@ if TYPE_CHECKING:
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
     from flowtog.collectionmetadata import CollectionMetadata
+    from flowtog.config import CategoryConfig, Config
     from flowtog.metadatasession import MetadataTypeToValues
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
-_HIERARCHY_PARENTS: Final[list[str]] = ["People"]
 _HIERARCHY_SEPARATOR: Final[str] = "|"
 
-_KEYWORD_PREFIX: Final[str] = (
-    _HIERARCHY_SEPARATOR.join(_HIERARCHY_PARENTS) + _HIERARCHY_SEPARATOR
-    if _HIERARCHY_PARENTS else ""
-)
 
-
-def sync_people(collection_files: CollectionFiles, collection_metadata: CollectionMetadata) -> Counter[str]:
+def sync_people(collection_files: CollectionFiles,
+                config: Config,
+                collection_metadata: CollectionMetadata) -> Counter[str]:
     if not (xmp_files := collection_files.get_directory_files_by_type(DirectoryType.PHOTOS, FileType.XMP)):
         _LOG.warning("No XMP files found in Photos directory")
         return Counter()
@@ -34,13 +32,13 @@ def sync_people(collection_files: CollectionFiles, collection_metadata: Collecti
     people_counts: Counter[str] = Counter()
 
     for xmp_file in xmp_files:
-        people = _sync_people_in_file(xmp_file, collection_metadata)
+        people = _sync_people_in_file(xmp_file, config, collection_metadata)
         people_counts.update(people)
 
     return people_counts
 
 
-def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMetadata) -> set[str]:
+def _sync_people_in_file(file: CollectionFile, config: Config, collection_metadata: CollectionMetadata) -> set[str]:
     current_metadata_type_to_values = collection_metadata.get_metadata(file)
 
     current_people = _get_set_from_metadata_type_to_values(current_metadata_type_to_values,
@@ -52,7 +50,8 @@ def _sync_people_in_file(file: CollectionFile, collection_metadata: CollectionMe
 
     new_hierarchical_keywords, new_flat_keywords = _calculate_new_keywords(current_people,
                                                                            current_flat_keywords,
-                                                                           current_hierarchical_keywords)
+                                                                           current_hierarchical_keywords,
+                                                                           config)
 
     new_metadata_type_to_values: MetadataTypeToValues = {}
     if current_hierarchical_keywords != new_hierarchical_keywords:
@@ -88,29 +87,74 @@ def _get_set_from_metadata_type_to_values(metadata_type_to_values: MetadataTypeT
     return {value}
 
 
+# noinspection PyUnusedLocal
 def _calculate_new_keywords(current_people: Iterable[str],
-                            current_flat_keywords: set[str],
-                            current_hierarchical_keywords: set[str]) -> tuple[set[str], set[str]]:
-    current_flattened_hierarchical_keywords = _flatten_keywords(current_hierarchical_keywords)
-    current_flat_only_keywords = current_flat_keywords - current_flattened_hierarchical_keywords
+                            current_flat_keywords: set[str],  # noqa: ARG001 unused-function-argument
+                            current_hierarchical_keywords: set[str],  # noqa: ARG001 unused-function-argument
+                            config: Config) -> tuple[set[str], set[str]]:
+    # With configurable groups, it is difficult to determine which keywords we manage and which were added externally.
+    # So for now, we'll just say that external keywords are unsupported and replace all existing keywords with new ones.
+    # We'll keep the previous code here to use as a starting point if we want to add that functionality back in later.
+    # Remove noinspection and noqa comments above if the previous code is uncommented.
 
-    # Remove hierarchical keywords from flat keywords
-    # current_flat_only_keywords = {k for k in current_flat_only_keywords if _HIERARCHY_SEPARATOR not in k}
-
-    current_non_people_hierarchical_keywords = {
-        keyword for keyword in current_hierarchical_keywords
-        if not _KEYWORD_PREFIX or not keyword.startswith(_KEYWORD_PREFIX)
-    }
-    new_people_hierarchical_keywords = _people_to_hierarchical_keywords(current_people)
-    new_hierarchical_keywords = current_non_people_hierarchical_keywords | new_people_hierarchical_keywords
+    # current_flattened_hierarchical_keywords = _flatten_keywords(current_hierarchical_keywords)
+    # current_flat_only_keywords = current_flat_keywords - current_flattened_hierarchical_keywords
+    #
+    # current_non_people_hierarchical_keywords = {
+    #     keyword for keyword in current_hierarchical_keywords
+    #     if not _KEYWORD_PREFIX or not keyword.startswith(_KEYWORD_PREFIX)
+    # }
+    new_people_hierarchical_keywords = _people_to_hierarchical_keywords(current_people, config)
+    # new_hierarchical_keywords = current_non_people_hierarchical_keywords | new_people_hierarchical_keywords
+    new_hierarchical_keywords = new_people_hierarchical_keywords
     new_flattened_hierarchical_keywords = _flatten_keywords(new_hierarchical_keywords)
-    new_flat_keywords = new_flattened_hierarchical_keywords | current_flat_only_keywords
+    # new_flat_keywords = new_flattened_hierarchical_keywords | current_flat_only_keywords
+    new_flat_keywords = new_flattened_hierarchical_keywords
 
     return new_hierarchical_keywords, new_flat_keywords
 
 
-def _people_to_hierarchical_keywords(people: Iterable[str]) -> set[str]:
-    return {_KEYWORD_PREFIX + person.strip() for person in people if person.strip()}
+def _people_to_hierarchical_keywords(people: Iterable[str], config: Config) -> set[str]:
+    hierarchical_keywords: set[str] = set()
+
+    for person_name in people:
+        person = config.people.get(person_name)
+
+        for category_name, category in config.categories.items():
+            group_names = get_person_category_groups(person, category_name, config)
+            for group_name in group_names:
+                hierarchical_keywords.add(
+                    _get_group_hierarchical_keywords(group_name, person_name, config, category))
+
+        if not person:
+            continue
+
+        for group_name in person.groups:
+            hierarchical_keywords.add(_get_group_hierarchical_keywords(group_name, person_name, config))
+
+    return hierarchical_keywords
+
+
+def _get_group_hierarchical_keywords(group_name: str,
+                                     person_name: str,
+                                     config: Config,
+                                     category: CategoryConfig | None = None) -> str:
+    group = config.groups.get(group_name)
+    hierarchical_keyword_parts: list[str] = []
+
+    if category and category.hierarchical_keyword_prefix:
+        hierarchical_keyword_parts.extend(category.hierarchical_keyword_prefix)
+
+    if group and group.hierarchical_keyword:
+        hierarchical_keyword_parts.extend(group.hierarchical_keyword)
+    else:
+        hierarchical_keyword_parts.append(group_name)
+
+    if ((category and category.keyword_include_person) or
+            (group and group.keyword_include_person)):
+        hierarchical_keyword_parts.append(person_name)
+
+    return _HIERARCHY_SEPARATOR.join(hierarchical_keyword_parts)
 
 
 def _flatten_keywords(hierarchical_keywords: Iterable[str]) -> set[str]:

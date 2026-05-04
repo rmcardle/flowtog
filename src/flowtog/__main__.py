@@ -162,7 +162,7 @@ def _sync_people() -> None:
                                                                            DirectoryType.PHOTOS,
                                                                            metadata_session)
 
-            people_counts = sync_people(collection_files, collection_metadata)
+            people_counts = sync_people(collection_files, config, collection_metadata)
             report_people(people_counts, config)
 
 

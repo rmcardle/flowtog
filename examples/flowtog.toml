@@ -28,3 +28,4 @@
 # default-group = "Baz"
 # report = true
 # keyword-include-person = true
+# hierarchical-keyword-prefix = ["Bat"]
