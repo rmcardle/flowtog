@@ -2,8 +2,9 @@ from collections.abc import Callable, Generator
 from functools import wraps
 from typing import ParamSpec, TypeVar
 
-type MissingRange = tuple[int, int] | None
-type MissingRangeCoroutine = Generator[MissingRange, int]
+type NumberRange = tuple[int, int] | None
+type NumberRangeCoroutine = Generator[NumberRange, int | None]
+type MissingRangeCoroutine = Generator[NumberRange, int]
 
 P = ParamSpec("P")  # Parameters
 Y = TypeVar("Y")    # Yielded Values
@@ -21,9 +22,37 @@ def coroutine[**P, Y, S, R](func: Callable[P, Generator[Y, S, R]]) -> Callable[P
 
 
 @coroutine
+def get_number_range() -> NumberRangeCoroutine:
+    first_num: int | None = None
+    previous_num = 0
+    num_range: NumberRange = None
+
+    while True:
+        current_num: int | None = yield num_range
+
+        if current_num is None:
+            num_range = None if first_num is None else (first_num, previous_num)
+            first_num = None
+            continue
+
+        expected_num = previous_num + 1
+
+        if first_num is None:
+            first_num = current_num
+            num_range = None
+        elif current_num in (previous_num, expected_num):
+            num_range = None
+        else:
+            num_range = first_num, previous_num
+            first_num = current_num
+
+        previous_num = current_num
+
+
+@coroutine
 def get_missing_range(start_num: int = 0, *, skip_modulo: int | None = None) -> MissingRangeCoroutine:
     previous_num = start_num - 1
-    missing_range: MissingRange = None
+    missing_range: NumberRange = None
     while True:
         current_num: int = yield missing_range
         expected_num = previous_num + 1
@@ -38,10 +67,10 @@ def get_missing_range(start_num: int = 0, *, skip_modulo: int | None = None) -> 
         previous_num = current_num
 
 
-def format_range(missing_range: MissingRange,
+def format_range(number_range: NumberRange,
                  format_spec: str | None = None,
                  field_name: str | None = None) -> str:
-    assert missing_range
+    assert number_range
 
     def format_value(value: int) -> str:
         if not format_spec:
@@ -50,7 +79,7 @@ def format_range(missing_range: MissingRange,
             return format_spec.format(value)
         return format_spec.format(**{field_name: value})
 
-    first = format_value(missing_range[0])
-    last = format_value(missing_range[1])
+    first = format_value(number_range[0])
+    last = format_value(number_range[1])
 
-    return first if missing_range[0] == missing_range[1] else f"{first}-{last}"
+    return first if number_range[0] == number_range[1] else f"{first}-{last}"

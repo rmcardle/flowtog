@@ -9,6 +9,7 @@ from psutil import disk_partitions
 
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.filetype import FileType
+from flowtog.numberrange import format_range, get_number_range
 
 if TYPE_CHECKING:
     from flowtog.collectionfiles import CollectionFiles
@@ -222,6 +223,14 @@ def _scan_dcf_dir(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list
     start_file_num = state.next_source_file_num
     next_expected_not_found_message_logged = False
     last_raw_file: Path | None = None
+    number_range_coroutine = get_number_range()
+
+    def log_ignored_file_range(ignored_file_num: int | None) -> None:
+        if not (ignored_file_range := number_range_coroutine.send(ignored_file_num)):
+            return
+
+        ignored_files = format_range(ignored_file_range, state.filename_format, "file_num")
+        _LOG.debug(f"Ignoring {ignored_files} in {dcf_dir} - Not next expected file")
 
     for path in dcf_dir_sorted_files:
         if not (file_num := _get_file_num(path)):
@@ -235,7 +244,7 @@ def _scan_dcf_dir(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list
             if not next_expected_not_found_message_logged:
                 _LOG.debug(f"Next expected file {state.next_source_file_name} not found in {dcf_dir}")
                 next_expected_not_found_message_logged = True
-            _LOG.debug(f"Ignoring {path} - Not next expected file")
+            log_ignored_file_range(file_num)
             continue
 
         # noinspection PyTypeChecker
@@ -243,6 +252,9 @@ def _scan_dcf_dir(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list
 
         if path.suffix == _RAW_EXTENSION:
             last_raw_file = path
+
+    # Log any remaining ignored files
+    log_ignored_file_range(None)
 
     if last_raw_file:
         state.last_raw_size, state.last_raw_modified_time = _get_file_size_and_modified_time(last_raw_file)

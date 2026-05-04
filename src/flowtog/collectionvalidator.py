@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, Self
 
 from flowtog.collectiondirectories import DirectoryType
-from flowtog.filegroup_utils import MissingRangeCoroutine, format_range, get_missing_range
 from flowtog.filetype import FileType
 from flowtog.log_utils import log_file_path
+from flowtog.numberrange import MissingRangeCoroutine, format_range, get_missing_range
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable
