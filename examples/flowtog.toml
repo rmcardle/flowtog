@@ -24,7 +24,6 @@
 
 # [categories.bat]
 # groups = ["Baz", "Qux", "Corge"]
-# required = true
 # default-group = "Baz"
 # report = true
 # keyword-include-person = true

@@ -69,7 +69,6 @@ class GroupConfig:
 @dataclass(frozen=True)
 class CategoryConfig:
     groups: tuple[str, ...] = field(default_factory=tuple)
-    required: bool = field(default=False)
     default_group: str | None = field(default=None)
     allow_multiple: bool = field(default=False)
     report: bool = field(default=False)
@@ -219,13 +218,8 @@ class Config:
             categories[key] = tuple(value) if isinstance(value, list) else (value,)
 
         for category_name, category in raw_config.categories.items():
-            if category_name not in categories:
-                if category.default_group:
-                    categories[category_name] = (category.default_group,)
-                elif category.required:
-                    msg = (f'Person "{person_name}" does not have a group set for'
-                           f'required category "{category_name}"')
-                    raise ValueError(msg)
+            if category_name not in categories and category.default_group:
+                categories[category_name] = (category.default_group,)
 
         return PersonConfig(
             **person_fields,
