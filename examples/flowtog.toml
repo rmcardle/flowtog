@@ -7,6 +7,8 @@
 # raw-dir = "Raw"
 # rejected-dir = "Rejected"
 # unsorted-dir = "Unsorted"
+# videos-dir = "Videos"
+# videos-proxy-dir = "Videos/Proxy"
 # start-num = 1
 # selected_rating = 3
 

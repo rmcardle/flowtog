@@ -16,6 +16,8 @@ class DirectoryType(Enum):
     RAW = "raw_dir"
     REJECTED = "rejected_dir"
     UNSORTED = "unsorted_dir"
+    VIDEOS = "videos_dir"
+    VIDEOS_PROXY = "videos_proxy_dir"
     OTHER = None
 
 

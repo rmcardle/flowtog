@@ -22,6 +22,7 @@ from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
 from flowtog.peoplereporter import report_people
 from flowtog.sonyimagingedge import SonyImagingEdge
+from flowtog.videoimporter import import_videos
 
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
 _LOG.setLevel(logging.INFO)
@@ -55,7 +56,7 @@ def _show_main_menu() -> bool:
     match get_menu_choice(
         [
             "_Create directories",
-            "_Import photos from media",
+            "_Import photos and videos from media",
             "_Move sorted photos",
             "Move selected photo to _rejected",
             "Launch Sony Imaging Edge _Edit",
@@ -94,11 +95,14 @@ def _create_directories() -> None:
 
 
 def _import_files() -> None:
-    with LogStartExit(_LOG, logging.DEBUG, "Import photos from media"):
-        config = Config.load(_root_dir)
-        collection_files = CollectionFiles.from_collection(config.collection)
+    config = Config.load(_root_dir)
 
+    with LogStartExit(_LOG, logging.DEBUG, "Import photos from media"):
+        collection_files = CollectionFiles.from_collection(config.collection)
         import_files(collection_files)
+
+    with LogStartExit(_LOG, logging.DEBUG, "Import videos from media"):
+        import_videos(config.collection)
 
 
 def _move_sorted_files() -> None:

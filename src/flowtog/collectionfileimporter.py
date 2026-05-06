@@ -1,6 +1,5 @@
 import logging
 import re
-from datetime import UTC, datetime
 from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
@@ -10,8 +9,11 @@ from psutil import disk_partitions
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.filetype import FileType
 from flowtog.numberrange import format_range, get_number_range
+from flowtog.path_utils import get_size_and_modified_time
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from flowtog.collectionfiles import CollectionFiles
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
@@ -207,7 +209,7 @@ def _check_last_raw_match(state: _ImportState, file: Path, comparison: _CheckRaw
     assert state.last_raw_size
     assert state.last_raw_modified_time
 
-    file_size, file_modified_time = _get_file_size_and_modified_time(file)
+    file_size, file_modified_time = get_size_and_modified_time(file)
 
     match comparison:
         case _CheckRawMatchComparison.SAME:
@@ -257,7 +259,7 @@ def _scan_dcf_dir(state: _ImportState, dcf_dir: Path, dcf_dir_sorted_files: list
     log_ignored_file_range(None)
 
     if last_raw_file:
-        state.last_raw_size, state.last_raw_modified_time = _get_file_size_and_modified_time(last_raw_file)
+        state.last_raw_size, state.last_raw_modified_time = get_size_and_modified_time(last_raw_file)
 
 
 def _copy_files(file_pairs: list[Path]) -> None:
@@ -275,8 +277,3 @@ def _copy_files(file_pairs: list[Path]) -> None:
 
 def _get_file_num(path: Path) -> int | None:
     return int(match.group("file_num")) if (match := _DCF_OBJECT_PATTERN.match(path.name)) else None
-
-
-def _get_file_size_and_modified_time(file: Path) -> tuple[int, datetime]:
-    file_stat = file.stat()
-    return file_stat.st_size, datetime.fromtimestamp(file_stat.st_mtime, tz=UTC)

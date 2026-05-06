@@ -37,6 +37,8 @@ class CollectionConfig:
     raw_dir: Path = _directory_field("Raw")
     rejected_dir: Path = _directory_field("Rejected")
     unsorted_dir: Path = _directory_field("Unsorted")
+    videos_dir: Path = _directory_field("Videos")
+    videos_proxy_dir: Path = _directory_field("Videos/Proxy")
     # ruff: enable[RUF009] function-call-in-dataclass-default-argument
 
     start_num: int = 1
