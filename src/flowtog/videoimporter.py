@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
-from flowtog.dcf_utils import get_dcf_dirs, is_dcf_media
-from flowtog.path_utils import FilePair, copy_files, get_modified_time, get_removable_media
+from flowtog.dcf_utils import get_dcf_dirs, get_dcf_media
+from flowtog.path_utils import FilePair, copy_files, get_modified_time
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -66,10 +66,16 @@ class VideoFileBundle:
 def import_videos(collection: CollectionConfig) -> None:
     bundles: list[VideoFileBundle] = []
 
-    for media in get_removable_media():
+    found_media = False
+    for media in get_dcf_media():
+        found_media = True
         bundles.extend(_get_sony_avchd_bundles(media))
         bundles.extend(_get_sony_xavcs_bundles(media))
         bundles.extend(_get_gopro_bundles(media))
+
+    if not found_media:
+        _LOG.error("No DCF media found")
+        return
 
     for destination_dir in (collection.videos_dir, collection.videos_proxy_dir):
         if not destination_dir.is_dir():
@@ -212,9 +218,6 @@ def _add_sony_xavcs_file_to_bundle(bundle: VideoFileBundle, file: _NumberedTyped
 
 
 def _get_gopro_bundles(media_dir: Path) -> Iterator[VideoFileBundle]:
-    if not is_dcf_media(media_dir):
-        return
-
     file_num_to_bundle: dict[int, VideoFileBundle] = defaultdict(VideoFileBundle)
 
     for dcf_dir in get_dcf_dirs(media_dir):

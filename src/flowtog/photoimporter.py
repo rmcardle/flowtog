@@ -105,10 +105,11 @@ def import_photos(collection_files: CollectionFiles) -> None:
         _scan_dcf_media(state, media)
 
     if not found_media:
-        _LOG.error("No camera media found")
+        _LOG.error("No DCF media found")
         return
 
-    copy_files(state.import_file_pairs)
+    if not copy_files(state.import_file_pairs):
+        _LOG.error("Files were not copied")
 
 
 def _scan_dcf_media(state: _ImportState, dcf_media: Path) -> None:
