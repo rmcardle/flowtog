@@ -53,12 +53,12 @@ class CollectionDirectories:
         return self._directory_type_to_path[directory_type]
 
     @property
-    def valid_directories(self) -> list[Path]:
-        return [d for d in self._dirs if d.is_dir()]
+    def valid_directories(self) -> Iterator[Path]:
+        yield from (d for d in self._dirs if d.is_dir())
 
     @property
-    def _dirs(self) -> list[Path]:
-        return list(self._directory_type_to_path.values())
+    def _dirs(self) -> Iterator[Path]:
+        yield from self._directory_type_to_path.values()
 
     def get_directory_type(self, path: Path) -> DirectoryType:
         return self._path_to_directory_type.get(path, DirectoryType.OTHER)

@@ -1,5 +1,6 @@
 import re
 from collections.abc import (
+    Iterator,
     Mapping,
 )
 from dataclasses import Field, dataclass, field, fields
@@ -52,8 +53,8 @@ class CollectionConfig:
         return {f.name: getattr(self, f.name) for f in self.get_directory_fields()}
 
     @classmethod
-    def get_directory_fields(cls) -> list[Field[str]]:
-        return [f for f in fields(cls) if f.metadata.get("is_directory_field")]
+    def get_directory_fields(cls) -> Iterator[Field[str]]:
+        yield from (f for f in fields(cls) if f.metadata.get("is_directory_field"))
 
 
 @dataclass(frozen=True)

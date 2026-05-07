@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Self
 from flowtog.filetype import FileType
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from flowtog.collectionfile import CollectionFile
 
 
@@ -35,8 +37,8 @@ class FileGroup:
         object.__setattr__(self, "file_type_to_files", file_type_to_files)
 
     @property
-    def file_types(self) -> list[FileType]:
-        return list(self.file_type_to_files.keys())
+    def file_types(self) -> Iterator[FileType]:
+        yield from self.file_type_to_files.keys()
 
     @property
     def has_edits(self) -> bool:

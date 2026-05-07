@@ -62,7 +62,7 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
         return self.get_metadata(path).get(metadata_type)
 
     def _read_metadata(self, paths: str | Iterable[str]) -> None:
-        tags_list: list[dict[str, Any]] = self._exif_tool_helper.get_tags(paths, _get_tag_names())  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+        tags_list: list[dict[str, Any]] = self._exif_tool_helper.get_tags(paths, [MetadataType.tag_names])  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
         for tag_name_to_tags in tags_list:
             source_file = tag_name_to_tags.get(_EXIFTOOL_SOURCE_FILE_TAG)
             assert isinstance(source_file, str)
@@ -91,10 +91,6 @@ def validate_exiftool() -> bool:
             return True
     except FileNotFoundError:
         return False
-
-
-def _get_tag_names() -> list[str]:
-    return [t.value for t in MetadataType]
 
 
 def _get_metadata_type_to_values(tags: Mapping[str, Any]) -> MetadataTypeToValues:

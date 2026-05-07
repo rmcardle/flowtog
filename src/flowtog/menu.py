@@ -1,7 +1,9 @@
 # ruff: noqa: T201 print
-
 from msvcrt import getwch
-from typing import Final
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 _ESCAPE: Final[str] = "\x1b"
 _ANSI_UNDERLINE: Final[str] = _ESCAPE + "[4m"
@@ -14,7 +16,7 @@ def pause() -> None:
     print("\n")
 
 
-def get_choice(choices: list[str],
+def get_choice(choices: Iterable[str],
                *,
                prompt: str = "What is your choice",
                prompt_show_choices: bool = True,
@@ -43,7 +45,7 @@ def get_yes_no(*,
                       escape_choice="") == "y"
 
 
-def get_menu_choice(items: list[str | None],
+def get_menu_choice(items: Iterable[str | None],
                     *,
                     title: str = "",
                     prompt: str = "What is your choice",
@@ -66,7 +68,7 @@ def get_menu_choice(items: list[str | None],
                       escape_choice=escape_choice)
 
 
-def _get_choices_and_display_items(items: list[str | None]) -> tuple[list[str], list[str]]:
+def _get_choices_and_display_items(items: Iterable[str | None]) -> tuple[list[str], list[str]]:
     choices: list[str] = []
     display_items: list[str] = []
     for item in items:
@@ -94,7 +96,7 @@ def _get_choice_and_display_item(item: str | None) -> tuple[str, str]:
     return choice_char.lower(), display_text
 
 
-def _show_prompt(choices: list[str],
+def _show_prompt(choices: Iterable[str],
                  *,
                  prompt: str,
                  prompt_show_choices: bool,
@@ -106,8 +108,7 @@ def _show_prompt(choices: list[str],
         print(prompt, end=" ")
 
     if prompt_show_choices:
-        if include_escape:
-            choices.append("Esc")
-        print(f"({','.join(choices)})?", end=" ")
+        show_choices = (*choices, "Esc") if include_escape else choices
+        print(f"({','.join(show_choices)})?", end=" ")
 
     print(end="", flush=True)

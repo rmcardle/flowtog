@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from flowtog.collectiondirectories import DirectoryType
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
-    from flowtog.metadatasession import MetadataTypeToValues, MetadataSession
+    from flowtog.metadatasession import MetadataSession, MetadataTypeToValues
 
 
 @dataclass(frozen=True)

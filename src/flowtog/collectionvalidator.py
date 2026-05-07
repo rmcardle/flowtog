@@ -124,13 +124,13 @@ class CollectionValidator:
                           f"{group.group_name}: XMP files without matching JPEG file",
                           invalid_xmp_files)
 
-    def _validate_edits(self, group: FileGroup, files: list[CollectionFile]) -> None:
+    def _validate_edits(self, group: FileGroup, files: Iterable[CollectionFile]) -> None:
         self._validate_edit_duplicates(group, files)
         self._validate_edit_nums(group, files)
         self._validate_edit_dirs(group, files)
 
     @staticmethod
-    def _validate_edit_duplicates(group: FileGroup, group_files: list[CollectionFile]) -> None:
+    def _validate_edit_duplicates(group: FileGroup, group_files: Iterable[CollectionFile]) -> None:
         filename_to_files: dict[str, list[CollectionFile]] = defaultdict(list)
         for file in group_files:
             filename_to_files[file.filename].append(file)
@@ -140,7 +140,7 @@ class CollectionValidator:
                 log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Duplicates of {filename}", files)
 
     @staticmethod
-    def _validate_edit_nums(group: FileGroup, files: list[CollectionFile]) -> None:
+    def _validate_edit_nums(group: FileGroup, files: Iterable[CollectionFile]) -> None:
         edit_nums = sorted({f.edit_num for f in files if f.is_edit})
         missing_range_coroutine = get_missing_range(1)
         if missing_edits := [
@@ -150,7 +150,7 @@ class CollectionValidator:
         ]:
             _LOG.error(f"{group.group_name}: Missing edits {', '.join(missing_edits)}")
 
-    def _validate_edit_dirs(self, group: FileGroup, files: list[CollectionFile]) -> None:
+    def _validate_edit_dirs(self, group: FileGroup, files: Iterable[CollectionFile]) -> None:
         sorted_files = sorted(files, key=lambda file: file.edit_num)
 
         original = sorted_files[0]

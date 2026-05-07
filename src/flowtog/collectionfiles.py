@@ -12,7 +12,7 @@ from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable
+    from collections.abc import Iterable, Iterator
 
     from flowtog.config import CollectionConfig
 
@@ -130,21 +130,23 @@ class CollectionFiles:
     def get_group_by_num(self, group_num: int) -> FileGroup | None:
         return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
 
-    def get_groups_by_directory(self, directory_type: DirectoryType) -> list[FileGroup]:
+    def get_groups_by_directory(self, directory_type: DirectoryType) -> Iterator[FileGroup]:
         if directory_type in _GROUP_DIRECTORY_TYPES:
-            return self._directory_type_to_groups[directory_type]
+            yield from self._directory_type_to_groups[directory_type]
+            return
         raise NotImplementedError
 
     def get_directory_files_by_type(self,
                                     directory_type: DirectoryType,
-                                    file_type: FileType) -> list[CollectionFile]:
+                                    file_type: FileType) -> Iterator[CollectionFile]:
         if (file_type == FileType.XMP
                 and directory_type in _XMP_FILE_DIRECTORY_TYPES):
-            return self._directory_type_to_xmp_files[directory_type]
+            yield from self._directory_type_to_xmp_files[directory_type]
+            return
         raise NotImplementedError
 
 
-def _get_directory_entries(directory: Path | Iterable[Path]) -> Generator[os.DirEntry[str]]:
+def _get_directory_entries(directory: Path | Iterable[Path]) -> Iterator[os.DirEntry[str]]:
     if isinstance(directory, Path):
         with os.scandir(directory) as iterator:
             yield from iterator

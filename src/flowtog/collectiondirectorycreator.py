@@ -5,6 +5,7 @@ from flowtog.collectiondirectories import CollectionDirectories
 from flowtog.menu import get_yes_no
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
     from pathlib import Path
 
     from flowtog.config import CollectionConfig
@@ -45,7 +46,7 @@ def _get_directories(collection: CollectionConfig) -> tuple[list[Path], list[Pat
     return existing_dirs, dirs_to_create
 
 
-def _display_directories(existing_dirs: list[Path], dirs_to_create: list[Path]) -> None:
+def _display_directories(existing_dirs: Sequence[Path], dirs_to_create: Iterable[Path]) -> None:
     for directory_list in (existing_dirs, dirs_to_create):
         if not directory_list:
             continue
@@ -63,7 +64,7 @@ def _display_directories(existing_dirs: list[Path], dirs_to_create: list[Path]) 
         # ruff: enable[T201] print
 
 
-def _create_directories(directories: list[Path]) -> None:
+def _create_directories(directories: Iterable[Path]) -> None:
     for directory in directories:
         _LOG.info(f"Creating {directory}")
         directory.mkdir(parents=True)

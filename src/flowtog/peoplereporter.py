@@ -5,6 +5,7 @@ from flowtog.config import get_person_category_groups
 
 if TYPE_CHECKING:
     from collections import Counter
+    from collections.abc import Iterable, Iterator
 
     from flowtog.config import CategoryConfig, Config
 
@@ -78,21 +79,13 @@ def _report_category(people_counts: Counter[str],
 
 def _report_group(people_counts: Counter[str],
                   group_name: str,
-                  config: Config) -> list[str]:
+                  config: Config) -> Iterator[str]:
     group_people_names = {person_name for person_name, person in config.people.items() if group_name in person.groups}
-
     group_people_counts = [(person_name, people_counts[person_name]) for person_name in group_people_names]
+    yield from _get_people_count_lines(group_people_counts)
 
-    return _get_people_count_lines(group_people_counts)
 
-
-def _get_people_count_lines(people_counts: list[tuple[str, int]]) -> list[str]:
-    lines: list[str] = []
-
+def _get_people_count_lines(people_counts: Iterable[tuple[str, int]]) -> Iterator[str]:
     # Sort descending by count and then ascending by name
-    people_counts.sort(key=lambda item: (-item[1], item[0]))
-
-    for person_name, count in people_counts:
-        lines.append(f"\t{count}\t{person_name}")
-
-    return lines
+    for person_name, count in sorted(people_counts, key=lambda item: (-item[1], item[0])):
+        yield f"\t{count}\t{person_name}"

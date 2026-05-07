@@ -8,7 +8,7 @@ from flowtog.filetype import FileType
 from flowtog.log_utils import log_file_path
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
 
     from flowtog.collectionfile import CollectionFile
     from flowtog.collectionfiles import CollectionFiles
@@ -134,10 +134,10 @@ def _move_sorted_group(group: FileGroup, directories: CollectionDirectories, *, 
         pass
 
 
-def _get_moves(files: Iterable[CollectionFile], destination_dir: Path) -> list[CollectionFileMoveRecord]:
-    return [CollectionFileMoveRecord(Path(file), destination_dir / file.filename) for file in files]
+def _get_moves(files: Iterable[CollectionFile], destination_dir: Path) -> Iterator[CollectionFileMoveRecord]:
+    yield from (CollectionFileMoveRecord(Path(file), destination_dir / file.filename) for file in files)
 
 
-def _get_edit_moves(group: FileGroup, directories: CollectionDirectories) -> list[CollectionFileMoveRecord]:
+def _get_edit_moves(group: FileGroup, directories: CollectionDirectories) -> Iterator[CollectionFileMoveRecord]:
     # RAW files are already handled, we only need to handle JPEG and XMP files here
     raise NotImplementedError
