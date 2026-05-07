@@ -8,7 +8,6 @@ from typing import Final
 from flowtog import __version__
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.collectiondirectorycreator import create_directories
-from flowtog.collectionfileimporter import import_files
 from flowtog.collectionfilemover import move_sorted_files, move_to_rejected
 from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
@@ -21,6 +20,7 @@ from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
 from flowtog.peoplereporter import report_people
+from flowtog.photoimporter import import_photos
 from flowtog.sonyimagingedge import SonyImagingEdge
 from flowtog.videoimporter import import_videos
 
@@ -99,7 +99,7 @@ def _import_files() -> None:
 
     with LogStartExit(_LOG, logging.DEBUG, "Import photos from media"):
         collection_files = CollectionFiles.from_collection(config.collection)
-        import_files(collection_files)
+        import_photos(collection_files)
 
     with LogStartExit(_LOG, logging.DEBUG, "Import videos from media"):
         import_videos(config.collection)

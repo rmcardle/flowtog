@@ -92,7 +92,7 @@ def _get_last_raw_size_and_modified_time(collection_files: CollectionFiles) -> t
     return raw_file.size, raw_file.modified_time
 
 
-def import_files(collection_files: CollectionFiles) -> None:
+def import_photos(collection_files: CollectionFiles) -> None:
     state = _ImportState(collection_files)
 
     if not state.unsorted_dir.is_dir():
