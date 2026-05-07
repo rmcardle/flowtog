@@ -16,6 +16,7 @@ from flowtog.config import Config
 from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
+from flowtog.mediachecker import check_media
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
@@ -57,6 +58,7 @@ def _show_main_menu() -> bool:
         [
             "_Create directories",
             "_Import photos and videos from media",
+            "Check media for _uncopied files",
             "_Move sorted photos",
             "Move selected photo to _rejected",
             "Launch Sony Imaging Edge _Edit",
@@ -72,6 +74,8 @@ def _show_main_menu() -> bool:
             _create_directories()
         case "i":
             _import_files()
+        case "u":
+            _check_media()
         case "m":
             _move_sorted_files()
         case "r":
@@ -103,6 +107,13 @@ def _import_files() -> None:
 
     with LogStartExit(_LOG, logging.DEBUG, "Import videos from media"):
         import_videos(config.collection)
+
+
+def _check_media() -> None:
+    config = Config.load(_root_dir)
+
+    with LogStartExit(_LOG, logging.DEBUG, "Check media for uncopied files"):
+        check_media(config)
 
 
 def _move_sorted_files() -> None:
