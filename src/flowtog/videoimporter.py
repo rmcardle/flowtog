@@ -71,6 +71,11 @@ def import_videos(collection: CollectionConfig) -> None:
         bundles.extend(_get_sony_xavcs_bundles(media))
         bundles.extend(_get_gopro_bundles(media))
 
+    for destination_dir in (collection.videos_dir, collection.videos_proxy_dir):
+        if not destination_dir.is_dir():
+            _LOG.error(f"{destination_dir} does not exist or is not a directory")
+            return
+
     for bundle in bundles:
         _copy_bundle(bundle, collection.videos_dir, collection.videos_proxy_dir)
 
@@ -80,7 +85,7 @@ def _copy_bundle(bundle: VideoFileBundle, videos_dir: Path, proxy_dir: Path) -> 
 
     if not bundle.video_file:
         bundle_files = "\n\t".join(map(str, bundle.all_files))
-        _LOG.error(f"Bundle does not have a video file\n\t{bundle_files}")
+        _LOG.error(f"Bundle was not copied - No video file\n\t{bundle_files}")
         return
 
     video_modified_time_local = get_modified_time(bundle.video_file).astimezone()
@@ -150,7 +155,7 @@ def _get_numbered_typed_files(source_dir: Path, pattern: re.Pattern[str]) -> Ite
             continue
 
         if not (match := pattern.match(path.name)):
-            _LOG.warning(f"Ignoring {path} - Not a recognized file name pattern")
+            # _LOG.debug(f"Ignoring {path} - Not a recognized file name pattern")
             continue
 
         if not (file_num := match.group("file_num")):
