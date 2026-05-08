@@ -86,5 +86,27 @@ def copy_file(source_file: Path, destination_file: Path) -> None:
     source_file.copy(destination_file)
 
 
+def move_files(file_pairs: Iterable[FilePair]) -> bool:
+    if not file_pairs:
+        _LOG.info("No files to move")
+        return False
+
+    for _, destination_file in file_pairs:
+        if destination_file.exists():
+            _LOG.error(f"Aborting move - destination file {destination_file} already exists")
+            return False
+
+    for source_file, destination_file in file_pairs:
+        move_file(source_file, destination_file)
+
+    return True
+
+
+def move_file(source_file: Path, destination_file: Path) -> None:
+    _LOG.info(f"Moving {source_file} -> {destination_file}")
+    assert not destination_file.exists()
+    source_file.rename(destination_file)
+
+
 def files_match(file1: PathArg, file2: PathArg) -> bool:
     return get_size_and_modified_time(file1) == get_size_and_modified_time(file2)

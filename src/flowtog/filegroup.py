@@ -48,3 +48,12 @@ class FileGroup:
     @property
     def next_edit_num(self) -> int:
         return max(e.edit_num for e in self.files) + 1
+
+    def get_single_file_from_type(self, file_type: FileType) -> CollectionFile:
+        if len(files := self.file_type_to_files.get(file_type, [])) == 1:
+            return files[0]
+
+        msg = "\n\t".join([f"The group {self.group_name} does not contain exactly one {file_type} file "
+                           f"(it has {len(files)})",
+                           *(str(file.path) for file in files)])
+        raise ValueError(msg)

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class CollectionMetadata:
     _collections_files: CollectionFiles
     _directories: list[DirectoryType]
-    _metadata_session: MetadataSession
+    metadata_session: MetadataSession
     _xmp_files: list[CollectionFile] = field(init=False)
 
     @classmethod
@@ -28,7 +28,7 @@ class CollectionMetadata:
         return cls(
             _collections_files=collection_files,
             _directories=directories if isinstance(directories, list) else [directories],
-            _metadata_session=metadata_session,
+            metadata_session=metadata_session,
         )
 
     def __post_init__(self) -> None:
@@ -43,17 +43,17 @@ class CollectionMetadata:
         object.__setattr__(self, "_xmp_files", xmp_files)
 
     def _load_metadata(self) -> None:
-        self._metadata_session.load_metadata(self._xmp_files)
+        self.metadata_session.load_metadata(self._xmp_files)
 
     def get_metadata(self, file: CollectionFile) -> MetadataTypeToValues:
-        return self._metadata_session.get_metadata(file)
+        return self.metadata_session.get_metadata(file)
 
     def set_metadata(self, file: CollectionFile, metadata_type_to_values: MetadataTypeToValues) -> None:
-        self._metadata_session.set_metadata(file.path, metadata_type_to_values)
+        self.metadata_session.set_metadata(file.path, metadata_type_to_values)
 
     def get_rating(self, file: CollectionFile) -> int | None:
         if not ((xmp_path := self._get_xmp_path(file))
-                and (rating := self._metadata_session.get_metadata_by_type(xmp_path, MetadataType.RATING))):
+                and (rating := self.metadata_session.get_metadata_by_type(xmp_path, MetadataType.RATING))):
             return None
         if isinstance(rating, int):
             return rating

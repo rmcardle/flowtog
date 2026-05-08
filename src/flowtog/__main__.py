@@ -139,13 +139,14 @@ def _move_to_rejected() -> None:
         config = Config.load(_root_dir)
         collection_files = CollectionFiles.from_collection(config.collection)
 
-        while True:
-            group = _prompt_for_group(collection_files)
-            if not isinstance(group, FileGroup):
-                return
+        with MetadataSession() as metadata_session:
+            while True:
+                group = _prompt_for_group(collection_files)
+                if not isinstance(group, FileGroup):
+                    return
 
-            move_to_rejected(group, config.collection)
-            print()  # noqa: T201 print
+                move_to_rejected(group, config.collection, metadata_session)
+                print()  # noqa: T201 print
 
 
 def _edit_raw() -> None:

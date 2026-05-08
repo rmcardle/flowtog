@@ -81,14 +81,7 @@ def _get_last_raw_size_and_modified_time(collection_files: CollectionFiles) -> t
         msg = "collection_files.last_group is None but the collection is not empty"
         raise ValueError(msg)
 
-    raw_files = last_group.file_type_to_files[FileType.RAW]
-    if len(raw_files) != 1:
-        msg = "\n\t".join([f"The group {last_group.group_name} does not contain exactly one RAW file "
-                           f"(it has {len(raw_files)})",
-                           *(str(file.path) for file in raw_files)])
-        raise ValueError(msg)
-
-    raw_file = raw_files[0]
+    raw_file = last_group.get_single_file_from_type(FileType.RAW)
     return raw_file.size, raw_file.modified_time
 
 
