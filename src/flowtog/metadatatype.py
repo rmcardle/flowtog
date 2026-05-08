@@ -11,6 +11,6 @@ class MetadataType(Enum):
     SUBJECT = "XMP-dc:Subject"
     HIERARCHICAL_SUBJECT = "XMP-lr:hierarchicalSubject"
 
-    @property
-    def tag_names(self) -> Iterator[str]:
+    @classmethod
+    def get_tag_names(cls) -> Iterator[str]:
         yield from (t.value for t in MetadataType)
