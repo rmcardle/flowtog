@@ -123,8 +123,7 @@ def _copy_bundle(bundle: VideoFileBundle, videos_dir: Path, proxy_dir: Path) -> 
         file_pairs.append((source_file, destination_file))
 
     if not copy_files(file_pairs):
-        bundle_files = "\n\t".join(map(str, bundle.all_files))
-        _LOG.error(f"Bundle was not copied\n\t{bundle_files}")
+        _LOG.error(f"Bundle was not copied\n\t{'\n\t'.join(map(str, bundle.all_files))}")
 
 
 def _get_sony_avchd_bundles(media_dir: Path) -> Iterator[VideoFileBundle]:
