@@ -74,9 +74,9 @@ class MetadataSession(AbstractContextManager["MetadataSession"]):
 
         for metadata_type, metadata_value in metadata_type_to_values.items():
             if isinstance(metadata_value, list):
-                args.extend([f"-{metadata_type.value}={m}" for m in metadata_value])
+                args.extend(f"-{metadata_type.value}={m}" for m in metadata_value)
             else:
-                args.extend(f"-{metadata_type.value}={metadata_value}")
+                args.append(f"-{metadata_type.value}={metadata_value}")
 
         args.append(str(path))
 
