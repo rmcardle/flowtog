@@ -13,6 +13,7 @@ from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
 from flowtog.config import Config
+from flowtog.diskusagereporter import report_media_usage
 from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
@@ -105,8 +106,14 @@ def _import_files() -> None:
         collection_files = CollectionFiles.from_collection(config.collection)
         import_photos(collection_files)
 
+    print()  # noqa: T201 print
+
     with LogStartExit(_LOG, logging.DEBUG, "Import videos from media"):
         import_videos(config.collection)
+
+    print()  # noqa: T201 print
+
+    report_media_usage()
 
 
 def _check_media() -> None:
