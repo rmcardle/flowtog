@@ -31,6 +31,20 @@ _XMP_FILE_DIRECTORY_TYPES = [
 
 
 @dataclass(frozen=True)
+class _ScanCollectionFilesResult:
+    group_names: list[str]
+    group_name_to_files: dict[str, list[CollectionFile]]
+    directory_type_to_xmp_files: dict[DirectoryType, list[CollectionFile]]
+
+
+@dataclass(frozen=True)
+class _BuildGroupsResult:
+    last_group_num: int
+    group_name_to_group: dict[str, FileGroup]
+    directory_type_to_groups: dict[DirectoryType, list[FileGroup]]
+
+
+@dataclass(frozen=True)
 class CollectionFiles:
     collection: CollectionConfig
     directories: CollectionDirectories
@@ -54,6 +68,20 @@ class CollectionFiles:
         self._init_files_from_collection()
 
     def _init_files_from_collection(self) -> None:
+        scan_collection_files_result = self._scan_collection_files()
+        build_groups_result = self._build_groups(scan_collection_files_result.group_names,
+                                                 scan_collection_files_result.group_name_to_files)
+
+        # Use __setattr__ to avoid FrozenInstanceError
+        object.__setattr__(self, "_group_names", scan_collection_files_result.group_names)
+        object.__setattr__(self, "last_group_num", build_groups_result.last_group_num)
+        object.__setattr__(self, "_group_name_to_group", build_groups_result.group_name_to_group)
+        object.__setattr__(self, "_directory_type_to_groups", build_groups_result.directory_type_to_groups)
+        object.__setattr__(self,
+                           "_directory_type_to_xmp_files",
+                           scan_collection_files_result.directory_type_to_xmp_files)
+
+    def _scan_collection_files(self) -> _ScanCollectionFilesResult:
         group_names: set[str] = set()
         group_name_to_files: dict[str, list[CollectionFile]] = defaultdict(list)
         directory_type_to_xmp_files: dict[DirectoryType, list[CollectionFile]] = defaultdict(list)
@@ -71,12 +99,20 @@ class CollectionFiles:
                     and file.directory_type in _XMP_FILE_DIRECTORY_TYPES):
                 directory_type_to_xmp_files[file.directory_type].append(file)
 
-        sorted_group_names = sorted(group_names)
+        return _ScanCollectionFilesResult(
+            group_names=sorted(group_names),
+            group_name_to_files=group_name_to_files,
+            directory_type_to_xmp_files=directory_type_to_xmp_files,
+        )
+
+    def _build_groups(self,
+                      group_names: list[str],
+                      group_name_to_files: dict[str, list[CollectionFile]]) -> _BuildGroupsResult:
         last_group_num = self.collection.start_num - 1
         group_name_to_group: dict[str, FileGroup] = {}
         directory_type_to_groups: dict[DirectoryType, list[FileGroup]] = defaultdict(list)
 
-        for group_name in sorted_group_names:
+        for group_name in group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
                 _LOG.error(f"{group_name}: Could not determine file number")
                 continue
@@ -90,12 +126,11 @@ class CollectionFiles:
             if all(file.directory_type == directory_type for file in group_files):
                 directory_type_to_groups[directory_type].append(group)
 
-        # Use __setattr__ to avoid FrozenInstanceError
-        object.__setattr__(self, "_group_names", sorted_group_names)
-        object.__setattr__(self, "last_group_num", last_group_num)
-        object.__setattr__(self, "_group_name_to_group", group_name_to_group)
-        object.__setattr__(self, "_directory_type_to_groups", directory_type_to_groups)
-        object.__setattr__(self, "_directory_type_to_xmp_files", directory_type_to_xmp_files)
+        return _BuildGroupsResult(
+            last_group_num=last_group_num,
+            group_name_to_group=group_name_to_group,
+            directory_type_to_groups=directory_type_to_groups,
+        )
 
     def _create_collection_file(self,
                                 direntry: os.DirEntry[str]) -> CollectionFile:
