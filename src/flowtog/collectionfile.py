@@ -50,3 +50,6 @@ class CollectionFile(os.PathLike[str]):
     # Implement os.PathLike[str]
     def __fspath__(self) -> str:
         return fspath(self.path)
+
+    def __str__(self) -> str:
+        return str(self.path)

@@ -55,5 +55,5 @@ class FileGroup:
 
         msg = "\n\t".join([f"The group {self.group_name} does not contain exactly one {file_type} file "
                            f"(it has {len(files)})",
-                           *(str(file.path) for file in files)])
+                           *(str(file) for file in files)])
         raise ValueError(msg)
