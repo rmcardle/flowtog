@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Final
 from psutil import disk_partitions
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Iterable, Iterator, Sequence
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def get_removable_media() -> Iterator[Path]:
 def copy_files(file_pairs: Iterable[FilePair]) -> bool:
     if not file_pairs:
         _LOG.info("No files to copy")
-        return False
+        return True
 
     copy_file_pairs: list[FilePair] = []
 
@@ -86,10 +86,10 @@ def copy_file(source_file: Path, destination_file: Path) -> None:
     source_file.copy(destination_file)
 
 
-def move_files(file_pairs: Iterable[FilePair]) -> bool:
+def move_files(file_pairs: Sequence[FilePair]) -> bool:
     if not file_pairs:
         _LOG.info("No files to move")
-        return False
+        return True
 
     for _, destination_file in file_pairs:
         if destination_file.exists():
