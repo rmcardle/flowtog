@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING, Final
 
-from flowtog.collectiondirectories import DirectoryType
+from flowtog.collectiondirectories import directories_are_missing
 from flowtog.dcf_utils import DCFObjectName, get_dcf_dirs, get_dcf_media
 from flowtog.filetype import FileType
 from flowtog.numberrange import format_range, get_number_range
@@ -24,7 +24,7 @@ class _ImportState:
         last_raw_size, last_raw_modified_time = _get_last_raw_size_and_modified_time(collection_files)
         self.collection_files = collection_files
         self.filename_format = collection_files.collection.filename_format
-        self.unsorted_dir = collection_files.directories[DirectoryType.UNSORTED]
+        self.unsorted_dir = collection_files.collection.unsorted_dir
         self.last_raw_size = last_raw_size
         self.last_raw_modified_time = last_raw_modified_time
         self.last_source_file_num = collection_files.last_group_num % 10000
@@ -88,8 +88,9 @@ def _get_last_raw_size_and_modified_time(collection_files: CollectionFiles) -> t
 def import_photos(collection_files: CollectionFiles) -> None:
     state = _ImportState(collection_files)
 
-    if not state.unsorted_dir.is_dir():
-        _LOG.error(f"{state.unsorted_dir} does not exist or is not a directory")
+    if directories_are_missing(
+        state.unsorted_dir,
+    ):
         return
 
     found_media = False

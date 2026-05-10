@@ -5,13 +5,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
+from flowtog.collectiondirectories import CollectionDirectories, DirectoryType, directories_are_missing
 from flowtog.dcf_utils import get_dcf_dirs, get_dcf_media
 from flowtog.path_utils import FilePair, copy_files, get_modified_time
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-
-    from flowtog.config import CollectionConfig
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ class VideoFileBundle:
         setattr(self, field_name, file)
 
 
-def import_videos(collection: CollectionConfig) -> None:
+def import_videos(directories: CollectionDirectories) -> None:
     bundles: list[VideoFileBundle] = []
 
     found_media = False
@@ -77,13 +76,14 @@ def import_videos(collection: CollectionConfig) -> None:
         _LOG.error("No DCF media found")
         return
 
-    for destination_dir in (collection.videos_dir, collection.videos_proxy_dir):
-        if not destination_dir.is_dir():
-            _LOG.error(f"{destination_dir} does not exist or is not a directory")
-            return
+    if directories_are_missing(
+        directories[DirectoryType.VIDEOS],
+        directories[DirectoryType.VIDEOS_PROXY],
+    ):
+        return
 
     for bundle in bundles:
-        _copy_bundle(bundle, collection.videos_dir, collection.videos_proxy_dir)
+        _copy_bundle(bundle, directories[DirectoryType.VIDEOS], directories[DirectoryType.VIDEOS_PROXY])
 
 
 def _copy_bundle(bundle: VideoFileBundle, videos_dir: Path, proxy_dir: Path) -> None:

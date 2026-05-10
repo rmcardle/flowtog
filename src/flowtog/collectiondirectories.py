@@ -1,12 +1,17 @@
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Final, Self
+
+from flowtog.log_utils import log_file_path
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
     from flowtog.config import CollectionConfig
+
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class DirectoryType(Enum):
@@ -62,3 +67,13 @@ class CollectionDirectories:
 
     def get_directory_type(self, path: Path) -> DirectoryType:
         return self._path_to_directory_type.get(path, DirectoryType.OTHER)
+
+
+def directories_are_missing(*directories: Path) -> bool:
+    missing_directories = [directory for directory in directories if not directory.is_dir()]
+
+    if not missing_directories:
+        return False
+
+    log_file_path(_LOG, logging.ERROR, "One or more required directories is missing", missing_directories)
+    return True

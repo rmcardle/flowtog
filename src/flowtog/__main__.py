@@ -109,7 +109,7 @@ def _import_files() -> None:
     print()  # noqa: T201 print
 
     with LogStartExit(_LOG, logging.DEBUG, "Import videos from media"):
-        import_videos(config.collection)
+        import_videos(collection_files.directories)
 
     print()  # noqa: T201 print
 
