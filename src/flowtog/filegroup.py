@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Self
 from flowtog.filetype import FileType
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import KeysView
 
     from flowtog.collectionfile import CollectionFile
 
@@ -37,8 +37,8 @@ class FileGroup:
         object.__setattr__(self, "file_type_to_files", file_type_to_files)
 
     @property
-    def file_types(self) -> Iterator[FileType]:
-        yield from self.file_type_to_files.keys()
+    def file_types(self) -> KeysView[FileType]:
+        return self.file_type_to_files.keys()
 
     @property
     def has_edits(self) -> bool:
@@ -53,7 +53,7 @@ class FileGroup:
         if len(files := self.file_type_to_files.get(file_type, [])) == 1:
             return files[0]
 
-        msg = "\n\t".join([f"The group {self.group_name} does not contain exactly one {file_type} file "
+        msg = "\n\t".join([f"The group {self.group_name} does not contain exactly one {file_type.value} file "
                            f"(it has {len(files)})",
                            *(str(file) for file in files)])
         raise ValueError(msg)
