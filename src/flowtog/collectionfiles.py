@@ -18,11 +18,6 @@ if TYPE_CHECKING:
 
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
-# We only need to keep track of groups in these directories for CollectionFiles.get_groups_by_directory()
-_GROUP_DIRECTORY_TYPES = [
-    DirectoryType.UNSORTED,
-]
-
 # We only need to keep track of XMP files in these directories for CollectionFiles.get_directory_files_by_type()
 _XMP_FILE_DIRECTORY_TYPES = [
     DirectoryType.UNSORTED,
@@ -41,7 +36,8 @@ class _ScanCollectionFilesResult:
 class _BuildGroupsResult:
     last_group_num: int
     group_name_to_group: dict[str, FileGroup]
-    directory_type_to_groups: dict[DirectoryType, list[FileGroup]]
+    groups_in_unsorted_dir: list[FileGroup]
+    selected_groups_with_edits: list[FileGroup]
 
 
 @dataclass(frozen=True)
@@ -53,8 +49,9 @@ class CollectionFiles:
     _group_names: list[str] = field(init=False)
     last_group_num: int = field(init=False)
     _group_name_to_group: dict[str, FileGroup] = field(init=False)
-    _directory_type_to_groups: dict[DirectoryType, list[FileGroup]] = field(init=False)
+    groups_in_unsorted_dir: list[FileGroup] = field(init=False)
     _directory_type_to_xmp_files: dict[DirectoryType, list[CollectionFile]] = field(init=False)
+    selected_groups_with_edits: list[FileGroup] = field(init=False)
 
     @classmethod
     def from_collection(cls, collection: CollectionConfig) -> Self:
@@ -76,10 +73,13 @@ class CollectionFiles:
         object.__setattr__(self, "_group_names", scan_collection_files_result.group_names)
         object.__setattr__(self, "last_group_num", build_groups_result.last_group_num)
         object.__setattr__(self, "_group_name_to_group", build_groups_result.group_name_to_group)
-        object.__setattr__(self, "_directory_type_to_groups", build_groups_result.directory_type_to_groups)
+        object.__setattr__(self, "groups_in_unsorted_dir", build_groups_result.groups_in_unsorted_dir)
         object.__setattr__(self,
                            "_directory_type_to_xmp_files",
                            scan_collection_files_result.directory_type_to_xmp_files)
+        object.__setattr__(self,
+                           "selected_groups_with_edits",
+                           build_groups_result.selected_groups_with_edits)
 
     def _scan_collection_files(self) -> _ScanCollectionFilesResult:
         group_names: set[str] = set()
@@ -110,7 +110,8 @@ class CollectionFiles:
                       group_name_to_files: dict[str, list[CollectionFile]]) -> _BuildGroupsResult:
         last_group_num = self.collection.start_num - 1
         group_name_to_group: dict[str, FileGroup] = {}
-        directory_type_to_groups: dict[DirectoryType, list[FileGroup]] = defaultdict(list)
+        groups_in_unsorted_dir: list[FileGroup] = []
+        selected_groups_with_edits: list[FileGroup] = []
 
         for group_name in group_names:
             if not (group_num := self._filename_parser.get_file_num(group_name)):
@@ -122,14 +123,20 @@ class CollectionFiles:
             group = FileGroup.from_files(group_name, group_num, group_files)
             group_name_to_group[group_name] = group
 
-            directory_type = group_files[0].directory_type
-            if all(file.directory_type == directory_type for file in group_files):
-                directory_type_to_groups[directory_type].append(group)
+            if all(file.directory_type == DirectoryType.UNSORTED for file in group_files):
+                groups_in_unsorted_dir.append(group)
+
+            # We'll consider a group selected if it has no files in the unsorted or rejected directories
+            if (any(file.is_edit for file in group_files)
+                and not any(file.directory_type in (DirectoryType.UNSORTED, DirectoryType.REJECTED)
+                            for file in group_files)):
+                selected_groups_with_edits.append(group)
 
         return _BuildGroupsResult(
             last_group_num=last_group_num,
             group_name_to_group=group_name_to_group,
-            directory_type_to_groups=directory_type_to_groups,
+            groups_in_unsorted_dir=groups_in_unsorted_dir,
+            selected_groups_with_edits=selected_groups_with_edits,
         )
 
     def _create_collection_file(self,
@@ -164,12 +171,6 @@ class CollectionFiles:
 
     def get_group_by_num(self, group_num: int) -> FileGroup | None:
         return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
-
-    def get_groups_by_directory(self, directory_type: DirectoryType) -> Iterator[FileGroup]:
-        if directory_type in _GROUP_DIRECTORY_TYPES:
-            yield from self._directory_type_to_groups[directory_type]
-            return
-        raise NotImplementedError
 
     def get_directory_files_by_type(self,
                                     directory_type: DirectoryType,

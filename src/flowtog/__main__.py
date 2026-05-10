@@ -8,7 +8,7 @@ from typing import Final
 from flowtog import __version__
 from flowtog.collectiondirectories import DirectoryType
 from flowtog.collectiondirectorycreator import create_directories
-from flowtog.collectionfilemover import move_sorted_files, move_to_rejected
+from flowtog.collectionfilemover import move_edit_files, move_group_to_rejected, move_sorted_files
 from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
@@ -140,20 +140,21 @@ def _move_sorted_files() -> None:
                               collection_metadata,
                               last_group=None if last_group == _GroupSelection.ALL else last_group)
 
+            move_edit_files(collection_files)
+
 
 def _move_to_rejected() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Move selected photo to rejected"):
         config = Config.load(_root_dir)
         collection_files = CollectionFiles.from_collection(config.collection)
 
-        with MetadataSession() as metadata_session:
-            while True:
-                group = _prompt_for_group(collection_files)
-                if not isinstance(group, FileGroup):
-                    return
+        while True:
+            group = _prompt_for_group(collection_files)
+            if not isinstance(group, FileGroup):
+                return
 
-                move_to_rejected(group, config.collection, metadata_session)
-                print()  # noqa: T201 print
+            move_group_to_rejected(group, config.collection)
+            print()  # noqa: T201 print
 
 
 def _edit_raw() -> None:
