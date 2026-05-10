@@ -23,11 +23,17 @@ from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
 from flowtog.peoplereporter import report_people
 from flowtog.photoimporter import import_photos
+from flowtog.process_utils import processes_are_running
 from flowtog.sonyimagingedge import SonyImagingEdge
 from flowtog.videoimporter import import_videos
 
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
 _LOG.setLevel(logging.INFO)
+
+_CHECK_RUNNING_PROCESS_FILENAMES: Final[list[str]] = [
+    "aspect.exe",
+    "Mylio.exe",
+]
 
 _root_dir: Path
 
@@ -124,6 +130,9 @@ def _check_media() -> None:
 
 
 def _move_sorted_files() -> None:
+    if processes_are_running(_CHECK_RUNNING_PROCESS_FILENAMES):
+        return
+
     with LogStartExit(_LOG, logging.DEBUG, "Move sorted photos"):
         config = Config.load(_root_dir)
         collection_files = CollectionFiles.from_collection(config.collection)
