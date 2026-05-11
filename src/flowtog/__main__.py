@@ -1,9 +1,11 @@
 import argparse
 import logging
+import os
 import sys
 from enum import Enum, auto
+from io import TextIOBase
 from pathlib import Path
-from typing import Final
+from typing import Final, TextIO
 
 from flowtog import __version__
 from flowtog.collectiondirectories import DirectoryType
@@ -28,7 +30,15 @@ from flowtog.sonyimagingedge import SonyImagingEdge
 from flowtog.videoimporter import import_videos
 
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
-_LOG.setLevel(logging.INFO)
+_LOG.setLevel(logging.DEBUG)
+
+_LOG_FILE_NAME = "flowtog-log.txt"
+_LOG_FILE_LEVEL: Final[int] = logging.DEBUG
+_LOG_FILE_FORMAT = "%(asctime)s <%(levelname)s> %(name)s: %(message)s"
+
+_LOG_CONSOLE_LEVEL: Final[int] = logging.INFO
+_LOG_CONSOLE_FORMAT = "%(message)s"
+
 
 _CHECK_RUNNING_PROCESS_FILENAMES: Final[list[str]] = [
     "aspect.exe",
@@ -39,13 +49,14 @@ _root_dir: Path
 
 
 def _main() -> None:
-    _configure_logger()
+    args = _parse_arguments()
+
+    if not _set_root_dir(args):
+        return
+
+    _configure_loggers()
+
     with LogStartExit(_LOG, logging.DEBUG, f"Flowtog {__version__}"):
-        args = _parse_arguments()
-
-        if not _set_root_dir(args):
-            return
-
         _LOG.info(f"Root directory: {_root_dir}")
 
         if not validate_exiftool():
@@ -71,6 +82,7 @@ def _show_main_menu() -> bool:
             "Launch Sony Imaging Edge _Edit",
             "_Sync people to keywords",
             "_Validate collection",
+            "View _log file",
             None,
             "E_xit",
         ],
@@ -93,6 +105,8 @@ def _show_main_menu() -> bool:
             _sync_people()
         case "v":
             _validate_collection()
+        case "l":
+            _view_log_file()
         case _:
             return False
 
@@ -213,6 +227,10 @@ def _validate_collection() -> None:
             validator.validate()
 
 
+def _view_log_file() -> None:
+    os.startfile(_get_log_file_path())  # noqa: S606 start-process-with-no-shell
+
+
 class _GroupSelection(Enum):
     ALL = auto()
     NONE = auto()
@@ -240,27 +258,40 @@ def _prompt_for_group(collection_files: CollectionFiles,
     return group
 
 
-def _configure_logger() -> None:
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.DEBUG)
-    stdout_formatter = logging.Formatter("%(message)s")
-    stdout_handler.setFormatter(stdout_formatter)
+def _configure_loggers() -> None:
+    _configure_logger(_get_log_file_path(), _LOG_FILE_LEVEL, _LOG_FILE_FORMAT)
+    _configure_logger(sys.stdout, _LOG_CONSOLE_LEVEL, _LOG_CONSOLE_FORMAT)
 
-    # TODO: add file handler
 
-    _LOG.addHandler(stdout_handler)
+def _configure_logger(destination: str | os.PathLike[str] | TextIO,
+                      level: int | str,
+                      fmt: str | None = None) -> None:
+    # The standard streams (sys.stdout, etc.) are type hinted as TextIO but inherit from TextIOBase at runtime
+    handler = (logging.StreamHandler(destination)
+               if isinstance(destination, TextIOBase)
+               else logging.FileHandler(destination))  # pyright: ignore [reportArgumentType]
+    handler.setLevel(level)
+    formatter = logging.Formatter(fmt)
+    handler.setFormatter(formatter)
+    _LOG.addHandler(handler)
+
+
+def _get_log_file_path() -> Path:
+    return _root_dir / _LOG_FILE_NAME
 
 
 def _set_root_dir(args: argparse.Namespace) -> bool:
     global _root_dir  # noqa: PLW0603 global-statement
 
     if not args.root_dir:
-        _LOG.error("A collection directory is required")
+        # _LOG isn't configured yet so we need to use print
+        print("A collection directory is required")  # noqa: T201 print
         return False
 
     root_dir = Path(args.root_dir)
     if not root_dir.is_dir():
-        _LOG.error("The specified collection directory does not exist")
+        # _LOG isn't configured yet so we need to use print
+        print("The specified collection directory does not exist")  # noqa: T201 print
         return False
 
     _root_dir = root_dir
