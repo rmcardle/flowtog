@@ -202,7 +202,6 @@ def _scan_dcf_dir(state: _ImportState, dcf_dir: Path, sorted_files: Collection[P
             log_ignored_file_range(file_num)
             continue
 
-        # noinspection PyTypeChecker
         state.add_import_file(path, file_num)
 
         if path.suffix == _RAW_EXTENSION:
