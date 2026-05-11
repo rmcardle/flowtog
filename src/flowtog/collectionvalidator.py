@@ -78,10 +78,10 @@ class CollectionValidator:
                               logging.ERROR,
                               f"{group.group_name}: {file_type.value} file in incorrect folder",
                               file)
-            if file_type == FileType.JPEG \
-                    and (rating := self._collection_metadata.get_rating(file)) \
-                    and rating >= self._collection.selected_rating \
-                    and file.directory_type == DirectoryType.UNSORTED:
+            if (file_type == FileType.JPEG
+                    and (rating := self._collection_metadata.get_rating(file))
+                    and rating >= self._collection.selected_rating
+                    and file.directory_type == DirectoryType.UNSORTED):
                 log_file_path(_LOG,
                               logging.WARNING,
                               f"{file_type.value} file with rating {self._collection.selected_rating} or higher "
