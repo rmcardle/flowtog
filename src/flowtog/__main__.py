@@ -32,12 +32,12 @@ from flowtog.videoimporter import import_videos
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
 _LOG.setLevel(logging.DEBUG)
 
-_LOG_FILE_NAME = "flowtog-log.txt"
+_LOG_FILE_NAME: Final[str] = "flowtog-log.txt"
 _LOG_FILE_LEVEL: Final[int] = logging.DEBUG
-_LOG_FILE_FORMAT = "%(asctime)s <%(levelname)s> %(name)s: %(message)s"
+_LOG_FILE_FORMAT: Final[str] = "%(asctime)s <%(levelname)s> %(name)s: %(message)s"
 
 _LOG_CONSOLE_LEVEL: Final[int] = logging.INFO
-_LOG_CONSOLE_FORMAT = "%(message)s"
+_LOG_CONSOLE_FORMAT: Final[str] = "%(message)s"
 
 
 _CHECK_RUNNING_PROCESS_FILENAMES: Final[list[str]] = [
