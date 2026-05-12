@@ -52,6 +52,10 @@ def get_removable_media() -> Iterator[Path]:
     partitions = disk_partitions(all=False)
     for partition in sorted(partitions, key=lambda p: p.mountpoint):
         if "removable" in partition.opts:
+            try:
+                os.stat(partition.mountpoint)  # noqa: PTH116 os-stat
+            except PermissionError:
+                continue
             yield Path(partition.mountpoint)
 
 

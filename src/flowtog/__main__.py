@@ -20,6 +20,7 @@ from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
 from flowtog.mediachecker import check_media
+from flowtog.mediapreparer import prepare_media
 from flowtog.menu import get_menu_choice
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
@@ -75,8 +76,9 @@ def _show_main_menu() -> bool:
     match get_menu_choice(
         [
             "_Create directories",
-            "_Import photos and videos from media",
+            "_Prepare media",
             "Check media for _uncopied files",
+            "_Import photos and videos from media",
             "_Move sorted photos",
             "Move selected photo to _rejected",
             "Launch Sony Imaging Edge _Edit",
@@ -91,10 +93,12 @@ def _show_main_menu() -> bool:
     ):
         case "c":
             _create_directories()
-        case "i":
-            _import_files()
+        case "p":
+            _prepare_media()
         case "u":
             _check_media()
+        case "i":
+            _import_files()
         case "m":
             _move_sorted_files()
         case "r":
@@ -119,6 +123,21 @@ def _create_directories() -> None:
         create_directories(config.collection)
 
 
+def _prepare_media() -> None:
+    with LogStartExit(_LOG, logging.DEBUG, "Prepare media"):
+        config = Config.load(_root_dir)
+        collection_files = CollectionFiles.from_collection(config.collection)
+
+        prepare_media(collection_files)
+
+
+def _check_media() -> None:
+    config = Config.load(_root_dir)
+
+    with LogStartExit(_LOG, logging.DEBUG, "Check media for uncopied files"):
+        check_media(config)
+
+
 def _import_files() -> None:
     config = Config.load(_root_dir)
 
@@ -134,13 +153,6 @@ def _import_files() -> None:
     print()  # noqa: T201 print
 
     report_media_usage()
-
-
-def _check_media() -> None:
-    config = Config.load(_root_dir)
-
-    with LogStartExit(_LOG, logging.DEBUG, "Check media for uncopied files"):
-        check_media(config)
 
 
 def _move_sorted_files() -> None:
