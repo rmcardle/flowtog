@@ -14,7 +14,7 @@ from flowtog.collectionfilemover import move_edit_files, move_group_to_rejected,
 from flowtog.collectionfiles import CollectionFiles
 from flowtog.collectionmetadata import CollectionMetadata
 from flowtog.collectionvalidator import CollectionValidator
-from flowtog.config import Config
+from flowtog.config import Config, find_related_config_file, resolve_config_file
 from flowtog.diskusagereporter import report_media_usage
 from flowtog.filegroup import FileGroup
 from flowtog.filetype import FileType
@@ -46,19 +46,22 @@ _CHECK_RUNNING_PROCESS_FILENAMES: Final[list[str]] = [
     "Mylio.exe",
 ]
 
-_root_dir: Path
+_config_file: Path
 
 
 def _main() -> None:
     args = _parse_arguments()
 
-    if not _set_root_dir(args):
+    if not (config_file := _get_config_file(args)):
         return
+
+    global _config_file  # noqa: PLW0603 global-statement
+    _config_file = config_file
 
     _configure_loggers()
 
     with LogStartExit(_LOG, logging.DEBUG, f"Flowtog {__version__}"):
-        _LOG.info(f"Root directory: {_root_dir}")
+        _LOG.info(f"Root directory: {_config_file.parent}")
 
         if not validate_exiftool():
             _LOG.error("ExifTool not found")
@@ -119,27 +122,27 @@ def _show_main_menu() -> bool:
 
 def _create_directories() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Create directories"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         create_directories(config.collection)
 
 
 def _prepare_media() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Prepare media"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
         prepare_media(collection_files)
 
 
 def _check_media() -> None:
-    config = Config.load(_root_dir)
+    config = Config.load(_config_file)
 
     with LogStartExit(_LOG, logging.DEBUG, "Check media for uncopied files"):
         check_media(config)
 
 
 def _import_files() -> None:
-    config = Config.load(_root_dir)
+    config = Config.load(_config_file)
 
     with LogStartExit(_LOG, logging.DEBUG, "Import photos from media"):
         collection_files = CollectionFiles.from_collection(config.collection)
@@ -160,7 +163,7 @@ def _move_sorted_files() -> None:
         return
 
     with LogStartExit(_LOG, logging.DEBUG, "Move sorted photos"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
         if (last_group := _prompt_for_group(collection_files, allow_all=True)) == _GroupSelection.NONE:
@@ -180,7 +183,7 @@ def _move_sorted_files() -> None:
 
 def _move_to_rejected() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Move selected photo to rejected"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
         while True:
@@ -194,7 +197,7 @@ def _move_to_rejected() -> None:
 
 def _edit_raw() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Launch Sony Imaging Edge Edit"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
         while True:
@@ -213,7 +216,7 @@ def _edit_raw() -> None:
 
 def _sync_people() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Sync people to keywords"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
         with MetadataSession() as metadata_session:
@@ -227,7 +230,7 @@ def _sync_people() -> None:
 
 def _validate_collection() -> None:
     with LogStartExit(_LOG, logging.DEBUG, "Validate collection"):
-        config = Config.load(_root_dir)
+        config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
         with MetadataSession() as metadata_session:
@@ -289,26 +292,24 @@ def _configure_logger(destination: str | os.PathLike[str] | TextIO,
 
 
 def _get_log_file_path() -> Path:
-    return _root_dir / _LOG_FILE_NAME
+    return _config_file.parent / _LOG_FILE_NAME
 
 
-def _set_root_dir(args: argparse.Namespace) -> bool:
-    global _root_dir  # noqa: PLW0603 global-statement
+def _get_config_file(args: argparse.Namespace) -> Path | None:
+    if args.edit and (config_file := find_related_config_file(args.edit)):
+        return config_file
 
     if not args.root_dir:
         # _LOG isn't configured yet so we need to use print
         print("A collection directory is required")  # noqa: T201 print
-        return False
+        return None
 
-    root_dir = Path(args.root_dir)
-    if not root_dir.is_dir():
-        # _LOG isn't configured yet so we need to use print
-        print("The specified collection directory does not exist")  # noqa: T201 print
-        return False
+    if config_file := resolve_config_file(args.root_dir):
+        return config_file
 
-    _root_dir = root_dir
-
-    return True
+    # _LOG isn't configured yet so we need to use print
+    print("The specified collection directory does not exist")  # noqa: T201 print
+    return None
 
 
 def _parse_arguments() -> argparse.Namespace:

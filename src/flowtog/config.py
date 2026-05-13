@@ -136,19 +136,7 @@ class Config:
 
     @classmethod
     def load(cls, path: str | os.PathLike[str] | Path) -> Self:
-        load_path = Path(path)
-
-        if not load_path.exists():
-            raise FileNotFoundError(load_path)
-
-        if load_path.is_dir():
-            config_path = load_path / _DEFAULT_CONFIG_FILE_NAME
-        elif load_path.is_file():
-            config_path = load_path
-        else:
-            msg = f'Path "{load_path}" is not a directory or regular file'
-            raise ValueError(msg)
-
+        config_path = Path(path)
         base_dir = config_path.parent
 
         raw_config = Binder(_RawConfig).parse_toml(config_path) \
@@ -278,6 +266,31 @@ class Config:
             if group_name not in all_group_names:
                 msg = f'Unknown group "{group_name}" for person "{person_name}"'
                 raise ValueError(msg)
+
+
+def resolve_config_file(path: str | os.PathLike[str] | Path) -> Path | None:
+    config_path = Path(path)
+
+    if config_path.is_file():
+        return config_path
+
+    if config_path.is_dir() and (config_file := config_path / _DEFAULT_CONFIG_FILE_NAME).is_file():
+        return config_file
+
+    return None
+
+
+def find_related_config_file(start_path: Path) -> Path | None:
+    current_dir = start_path if start_path.is_dir() else start_path.parent
+
+    while True:
+        if (config_file_path := current_dir / _DEFAULT_CONFIG_FILE_NAME).is_file():
+            return config_file_path
+
+        if (parent_dir := current_dir.parent) == current_dir:
+            return None
+
+        current_dir = parent_dir
 
 
 def get_person_category_groups(person: PersonConfig | None, category_name: str, config: Config) -> tuple[str, ...]:
