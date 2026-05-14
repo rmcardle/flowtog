@@ -21,7 +21,7 @@ from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
 from flowtog.mediachecker import check_media
 from flowtog.mediapreparer import prepare_media
-from flowtog.menu import get_menu_choice
+from flowtog.menu import get_menu_choice, pause
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
 from flowtog.peoplereporter import report_people
@@ -68,7 +68,7 @@ def _main() -> None:
             return
 
         if args.edit:
-            SonyImagingEdge.launch(args.edit)
+            _edit_photo(args.edit)
             return
 
         while _show_main_menu():
@@ -84,7 +84,7 @@ def _show_main_menu() -> bool:
             "_Import photos and videos from media",
             "_Move sorted photos",
             "Move selected photo to _rejected",
-            "Launch Sony Imaging Edge _Edit",
+            "_Edit photo with Sony Imaging Edge Edit",
             "_Sync people to keywords",
             "_Validate collection",
             "View _log file",
@@ -107,7 +107,7 @@ def _show_main_menu() -> bool:
         case "r":
             _move_to_rejected()
         case "e":
-            _edit_raw()
+            _edit_photo()
         case "s":
             _sync_people()
         case "v":
@@ -195,23 +195,24 @@ def _move_to_rejected() -> None:
             print()  # noqa: T201 print
 
 
-def _edit_raw() -> None:
-    with LogStartExit(_LOG, logging.DEBUG, "Launch Sony Imaging Edge Edit"):
+def _edit_photo(path: Path | None = None) -> None:
+    with LogStartExit(_LOG, logging.DEBUG, "Edit photo with Sony Imaging Edge Edit"):
         config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
-        while True:
+        raw_file = path or None
+
+        while not raw_file:
             group = _prompt_for_group(collection_files)
             if not isinstance(group, FileGroup):
                 return
 
-            if (FileType.RAW in group.file_types
-                    and (raw_files := group.file_type_to_files[FileType.RAW])
-                    and len(raw_files) == 1):
-                raw_file = raw_files[0]
+            if single_file := group.try_get_single_file_from_type(FileType.RAW):
+                raw_file = single_file.path
                 break
 
-        SonyImagingEdge.launch(raw_file.path)
+        if not SonyImagingEdge.edit_file(raw_file, collection_files) and path:
+            pause()
 
 
 def _sync_people() -> None:

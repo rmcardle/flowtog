@@ -53,10 +53,16 @@ class FileGroup:
         return max(e.edit_num for e in self.files) + 1
 
     def get_single_file_from_type(self, file_type: FileType) -> CollectionFile:
-        if len(files := self.file_type_to_files.get(file_type, [])) == 1:
-            return files[0]
+        if single_file := self.try_get_single_file_from_type(file_type):
+            return single_file
 
+        files = self.file_type_to_files.get(file_type, [])
         msg = "\n\t".join([f"The group {self} does not contain exactly one {file_type.value} file "
                            f"(it has {len(files)})",
                            *(str(file) for file in files)])
         raise ValueError(msg)
+
+    def try_get_single_file_from_type(self, file_type: FileType) -> CollectionFile | None:
+        if len(files := self.file_type_to_files.get(file_type, [])) == 1:
+            return files[0]
+        return None
