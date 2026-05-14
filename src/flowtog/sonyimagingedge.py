@@ -152,7 +152,13 @@ def _set_output_dialog_file_type(output_dialog: WindowSpecification) -> None:
 
 def _set_output_dialog_directory(output_dialog: WindowSpecification, directory: Path) -> bool:
     _LOG.debug(f"Setting directory to {directory}...")
+    # Set the text of the "File name" text box
     _set_output_dialog_file_name(output_dialog, str(directory))  # pyright: ignore [reportUnknownMemberType]
+
+    # Make sure that the text has changed before we click the "Save" button
+    if _get_output_dialog_file_name(output_dialog) != directory:
+        _LOG.error('The text of the "File name" text box did not change')
+        return False
 
     retries = 0
     while True:
@@ -166,7 +172,7 @@ def _set_output_dialog_directory(output_dialog: WindowSpecification, directory: 
             break
 
         if retries >= _CHANGE_DIR_RETRIES:
-            _LOG.error(f"ERROR: Change directory retry limit reached - retried {retries} times")
+            _LOG.error(f"Change directory retry limit reached - retried {retries} times")
             return False
 
         time.sleep(_CHANGE_DIR_RETRY_DELAY_SECS)
