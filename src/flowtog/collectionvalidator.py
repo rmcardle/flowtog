@@ -65,7 +65,7 @@ class CollectionValidator:
 
     @staticmethod
     def _validate_other_files(group: FileGroup, files: Iterable[CollectionFile]) -> None:
-        log_file_path(_LOG, logging.WARNING, f"{group.group_name}: Other files", files)
+        log_file_path(_LOG, logging.WARNING, f"{group}: Other files", files)
 
     def _validate_allowed_dirs(self,
                                group: FileGroup,
@@ -76,7 +76,7 @@ class CollectionValidator:
             if file.directory_type not in _get_file_type_allowed_dir_types()[file_type]:
                 log_file_path(_LOG,
                               logging.ERROR,
-                              f"{group.group_name}: {file_type.value} file in incorrect folder",
+                              f"{group}: {file_type.value} file in incorrect folder",
                               file)
             if (file_type == FileType.JPEG
                     and (rating := self._collection_metadata.get_rating(file))
@@ -91,15 +91,15 @@ class CollectionValidator:
     @staticmethod
     def _validate_multiple(group: FileGroup, file_type: FileType, files: Collection[CollectionFile]) -> None:
         if len(files) > 1:
-            log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Multiple {file_type.value} files", files)
+            log_file_path(_LOG, logging.ERROR, f"{group}: Multiple {file_type.value} files", files)
 
     @staticmethod
     def _validate_missing(group: FileGroup) -> None:
         if len(group.file_type_to_files[FileType.RAW]) < 1:
-            _LOG.error(f"{group.group_name}: Missing RAW file")
+            _LOG.error(f"{group}: Missing RAW file")
 
         if len(group.file_type_to_files[FileType.JPEG]) < 1:
-            _LOG.error(f"{group.group_name}: Missing JPEG file")
+            _LOG.error(f"{group}: Missing JPEG file")
 
     @staticmethod
     def _validate_xmp_same_dir(group: FileGroup) -> None:
@@ -121,7 +121,7 @@ class CollectionValidator:
         if invalid_xmp_files:
             log_file_path(_LOG,
                           logging.ERROR,
-                          f"{group.group_name}: XMP files without matching JPEG file",
+                          f"{group}: XMP files without matching JPEG file",
                           invalid_xmp_files)
 
     def _validate_edits(self, group: FileGroup, files: Iterable[CollectionFile]) -> None:
@@ -137,7 +137,7 @@ class CollectionValidator:
 
         for filename, files in filename_to_files.items():
             if len(files) > 1:
-                log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Duplicates of {filename}", files)
+                log_file_path(_LOG, logging.ERROR, f"{group}: Duplicates of {filename}", files)
 
     @staticmethod
     def _validate_edit_nums(group: FileGroup, files: Iterable[CollectionFile]) -> None:
@@ -148,32 +148,32 @@ class CollectionValidator:
             for edit_num in edit_nums
             if (missing_range := missing_range_coroutine.send(edit_num))
         ]:
-            _LOG.error(f"{group.group_name}: Missing edits {', '.join(missing_edits)}")
+            _LOG.error(f"{group}: Missing edits {', '.join(missing_edits)}")
 
     def _validate_edit_dirs(self, group: FileGroup, files: Iterable[CollectionFile]) -> None:
         sorted_files = sorted(files, key=lambda file: file.edit_num)
 
         original = sorted_files[0]
         if original.edit_num != 0 or original.is_edit:
-            log_file_path(_LOG, logging.ERROR, f"{group.group_name}: Missing original for edit", original)
+            log_file_path(_LOG, logging.ERROR, f"{group}: Missing original for edit", original)
         elif original.directory_type != DirectoryType.ORIGINALS:
             log_file_path(_LOG,
                           logging.ERROR,
-                          f'{group.group_name}: Original not in "{self._collection.originals_dir}" directory',
+                          f'{group}: Original not in "{self._collection.originals_dir}" directory',
                           original)
 
         current = sorted_files[-1]
         if current.directory_type != DirectoryType.PHOTOS:
             log_file_path(_LOG,
                           logging.ERROR,
-                          f'{group.group_name}: Current edit not in "{self._collection.photos_dir}" directory',
+                          f'{group}: Current edit not in "{self._collection.photos_dir}" directory',
                           current)
 
         for previous_edit in sorted_files[1:-1]:
             if previous_edit.directory_type != DirectoryType.PREVIOUS_EDITS:
                 log_file_path(_LOG,
                               logging.ERROR,
-                              f'{group.group_name}: Previous edit not in '
+                              f'{group}: Previous edit not in '
                               f'"{self._collection.previous_edits_dir}" directory',
                               previous_edit)
 

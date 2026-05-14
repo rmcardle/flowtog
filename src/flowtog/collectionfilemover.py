@@ -103,7 +103,7 @@ def _group_has_type_with_multiple_files(group: FileGroup) -> bool:
     if not (type_to_multiple_files := _get_group_file_types_with_multiple_files(group)):
         return False
 
-    lines = [f"Ignoring group {group.group_name} - Group has multiple files of the same type"]
+    lines = [f"Ignoring group {group} - Group has multiple files of the same type"]
     for file_type, files in type_to_multiple_files.items():
         lines.extend(f"\t{file_type.value} - {file}" for file in files)
 
@@ -137,7 +137,7 @@ def _group_missing_file_types(group: FileGroup, file_types: list[FileType]) -> b
 
     missing_type_str = ", ".join(file_type.value for file_type in missing_types)
 
-    _LOG.error(f"Ignoring group {group.group_name} - Group is missing required file type {missing_type_str}")
+    _LOG.error(f"Ignoring group {group} - Group is missing required file type {missing_type_str}")
     return True
 
 
@@ -147,7 +147,7 @@ def _group_has_other_files(group: FileGroup) -> bool:
 
     log_file_path(_LOG,
                   logging.ERROR,
-                  f"Ignoring group {group.group_name} - Group has unrecognized files",
+                  f"Ignoring group {group} - Group has unrecognized files",
                   group.file_type_to_files[FileType.OTHER])
     return True
 

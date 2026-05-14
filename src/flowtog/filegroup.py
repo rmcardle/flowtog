@@ -36,6 +36,9 @@ class FileGroup:
         # Use __setattr__ to avoid FrozenInstanceError
         object.__setattr__(self, "file_type_to_files", file_type_to_files)
 
+    def __str__(self) -> str:
+        return self.group_name
+
     @property
     def file_types(self) -> KeysView[FileType]:
         return self.file_type_to_files.keys()
@@ -53,7 +56,7 @@ class FileGroup:
         if len(files := self.file_type_to_files.get(file_type, [])) == 1:
             return files[0]
 
-        msg = "\n\t".join([f"The group {self.group_name} does not contain exactly one {file_type.value} file "
+        msg = "\n\t".join([f"The group {self} does not contain exactly one {file_type.value} file "
                            f"(it has {len(files)})",
                            *(str(file) for file in files)])
         raise ValueError(msg)
