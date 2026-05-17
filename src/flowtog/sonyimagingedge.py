@@ -38,16 +38,12 @@ class GroupSaveInfo:
     edit_num: int
 
 
-def edit_file(file: Path, collection_files: CollectionFiles) -> bool:
-    if not (group := collection_files.get_group_by_file(file)):
-        _LOG.error(f"The file group for the specified file could not be found in the collection\n\t{file}")
+def edit_file(files: list[Path], collection_files: CollectionFiles) -> bool:
+    if not (edit_files := _get_edit_files(files, collection_files)):
+        _LOG.error("No files to edit")
         return False
 
-    if not (raw_file := group.try_get_single_file_from_type(FileType.RAW)):
-        _LOG.error(f"Could not get the RAW file for group {group}")
-        return False
-
-    if not (app := _launch_sie_edit(raw_file.path)):
+    if not (app := _launch_sie_edit(edit_files)):
         _LOG.error("Could not launch Sony Imaging Edge Edit")
         return False
 
@@ -58,7 +54,21 @@ def edit_file(file: Path, collection_files: CollectionFiles) -> bool:
     return True
 
 
-def _launch_sie_edit(file: Path) -> Application | None:
+def _get_edit_files(files: list[Path], collection_files: CollectionFiles) -> list[Path]:
+    edit_files: list[Path] = []
+
+    for file in files:
+        if ((group := collection_files.get_group_by_file(file))
+                and (raw_file := group.try_get_single_file_from_type(FileType.RAW))):
+            edit_files.append(raw_file.path)
+        else:
+            _LOG.error(f"Could not locate the RAW file for file {file} in the collection - opening it directly")
+            edit_files.append(file)
+
+    return edit_files
+
+
+def _launch_sie_edit(files: list[Path]) -> Application | None:
     if not (sie_edit_path := _get_sie_edit_path()):
         _LOG.error("Could not locate Sony Imaging Edge Edit")
         return None
@@ -70,7 +80,9 @@ def _launch_sie_edit(file: Path) -> Application | None:
     else:
         _LOG.debug("Sony Imaging Edge Edit is already running")
 
-    cmdline: str = subprocess.list2cmdline([sie_edit_path, file])
+    cmdline: str = subprocess.list2cmdline([sie_edit_path, *files])
+
+    _LOG.debug(f"Launching Sony Imaging Edge Edit with command line:\n\t{cmdline}")
     app = Application(backend="win32").start(cmdline)  # pyright: ignore [reportUnknownMemberType]
 
     return Application().connect(process=process_id) if process_id else app  # pyright: ignore [reportUnknownMemberType, reportUnknownArgumentType]

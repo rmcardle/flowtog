@@ -195,23 +195,23 @@ def _move_to_rejected() -> None:
             print()  # noqa: T201 print
 
 
-def _edit_photo(path: Path | None = None) -> None:
+def _edit_photo(paths: list[Path] | None = None) -> None:
     with (LogStartExit(_LOG, logging.DEBUG, "Edit photo with Sony Imaging Edge Edit")):
         config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
-        raw_file = path or None
+        edit_files = paths
 
-        while not raw_file:
+        while not edit_files:
             group = _prompt_for_group(collection_files)
             if not isinstance(group, FileGroup):
                 return
 
             if single_file := group.try_get_single_file_from_type(FileType.RAW):
-                raw_file = single_file.path
+                edit_files = [single_file.path]
                 break
 
-        if (edit_file(raw_file, collection_files)
+        if (edit_file(edit_files, collection_files)
                 and get_yes_no(prompt="Would you like to move edit files to their correct locations?")):
             # collection_files has a stale view of the file system so reinitialize it
             collection_files = CollectionFiles.from_collection(config.collection)
@@ -219,7 +219,7 @@ def _edit_photo(path: Path | None = None) -> None:
 
     # If path was specified, we were not run interactively
     # Pause so the user can read any errors or messages before the console window closes
-    if path:
+    if paths:
         pause()
 
 
@@ -305,7 +305,7 @@ def _get_log_file_path() -> Path:
 
 
 def _get_config_file(args: argparse.Namespace) -> Path | None:
-    if args.edit and (config_file := find_related_config_file(args.edit)):
+    if args.edit and len(args.edit) > 0 and (config_file := find_related_config_file(args.edit[0])):
         return config_file
 
     if not args.root_dir:
@@ -343,6 +343,7 @@ def _parse_arguments() -> argparse.Namespace:
                         metavar="DIR")
 
     parser.add_argument("-e", "--edit",
+                        nargs="+",
                         type=Path,
                         help="edit FILE with Sony Imaging Edge Edit",
                         metavar="FILE")
