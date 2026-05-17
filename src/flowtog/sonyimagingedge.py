@@ -91,7 +91,7 @@ def _get_sie_edit_path() -> Path | None:
 
 
 def _handle_output_dialogs(app: Application, collection_files: CollectionFiles) -> bool:
-    group_name_to_next_edit_num: dict[str, int] = {}
+    group_name_to_save_info: dict[str, GroupSaveInfo] = {}
 
     # Enable pywinauto logging
     # actionlogger.enable()
@@ -109,7 +109,9 @@ def _handle_output_dialogs(app: Application, collection_files: CollectionFiles) 
 
         if group_save_info := _get_group_save_info(original_file_path,
                                                    collection_files,
-                                                   group_name_to_next_edit_num):
+                                                   group_name_to_save_info):
+            group_name_to_save_info[group_save_info.group.group_name] = group_save_info
+
             _set_output_dialog_directory(output_dialog, group_save_info.save_file.parent)
             _set_output_dialog_file_name_text(output_dialog, group_save_info.save_file.name)
         else:
@@ -121,11 +123,6 @@ def _handle_output_dialogs(app: Application, collection_files: CollectionFiles) 
         if not _wait_for_window(output_dialog, wait_for="exists", wait_not=True):
             # The process has exited
             break
-
-        # If the file was actually saved, update group_to_next_edit_num
-        if group_save_info and group_save_info.save_file.is_file():
-            _LOG.debug(f"File {group_save_info.save_file} was saved")
-            group_name_to_next_edit_num[group_save_info.group.group_name] = group_save_info.edit_num + 1
 
     return True
 
@@ -170,13 +167,17 @@ def _get_output_dialog_file_path(output_dialog: WindowSpecification) -> Path | N
 
 def _get_group_save_info(original_file_name: Path,
                          collection_files: CollectionFiles,
-                         group_name_to_next_edit_num: dict[str, int]) -> GroupSaveInfo | None:
-    if not (group := collection_files.get_group_by_name(original_file_name.stem)):
+                         group_name_to_save_info: dict[str, GroupSaveInfo]) -> GroupSaveInfo | None:
+    if not (group := collection_files.get_group_by_file(original_file_name, must_be_in_group=False)):
         _LOG.error(f"Could not get the collection file group for file {original_file_name}")
         return None
 
+    if group_save_info := group_name_to_save_info.get(group.group_name):
+        edit_num = group_save_info.edit_num + 1 if group_save_info.save_file.is_file() else group_save_info.edit_num
+    else:
+        edit_num = group.next_edit_num
+
     save_directory = _get_save_directory(group, collection_files)
-    edit_num = group_name_to_next_edit_num.get(group.group_name, group.next_edit_num)
     save_file_name = f"{group}-{edit_num:02d}.JPG"
 
     return GroupSaveInfo(

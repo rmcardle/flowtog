@@ -172,12 +172,17 @@ class CollectionFiles:
     def get_group_by_num(self, group_num: int) -> FileGroup | None:
         return self.get_group_by_name(self.collection.filename_format.format(file_num=group_num))
 
-    def get_group_by_file(self, file: Path) -> FileGroup | None:
-        if ((group_name := self._filename_parser.get_group_name(file))
-                and (group := self.get_group_by_name(group_name))
-                and any(group_file.path == file for group_file in group.files)):
-            return group
-        return None
+    def get_group_by_file(self, file: Path, *, must_be_in_group: bool = True) -> FileGroup | None:
+        if not (group_name := self._filename_parser.get_group_name(file)):
+            return None
+
+        if not (group := self.get_group_by_name(group_name)):
+            return None
+
+        if must_be_in_group and not any(group_file.path == file for group_file in group.files):
+            return None
+
+        return group
 
     def get_directory_files_by_type(self,
                                     directory_type: DirectoryType,
