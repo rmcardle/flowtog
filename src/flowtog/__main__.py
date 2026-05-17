@@ -21,13 +21,13 @@ from flowtog.filetype import FileType
 from flowtog.log_utils import LogStartExit
 from flowtog.mediachecker import check_media
 from flowtog.mediapreparer import prepare_media
-from flowtog.menu import get_menu_choice, pause
+from flowtog.menu import get_menu_choice, get_yes_no, pause
 from flowtog.metadatasession import MetadataSession, validate_exiftool
 from flowtog.peoplekeywordsync import sync_people
 from flowtog.peoplereporter import report_people
 from flowtog.photoimporter import import_photos
 from flowtog.process_utils import processes_are_running
-from flowtog.sonyimagingedge import SonyImagingEdge
+from flowtog.sonyimagingedge import edit_file
 from flowtog.videoimporter import import_videos
 
 _LOG: Final[logging.Logger] = logging.getLogger(__package__)
@@ -196,7 +196,7 @@ def _move_to_rejected() -> None:
 
 
 def _edit_photo(path: Path | None = None) -> None:
-    with LogStartExit(_LOG, logging.DEBUG, "Edit photo with Sony Imaging Edge Edit"):
+    with (LogStartExit(_LOG, logging.DEBUG, "Edit photo with Sony Imaging Edge Edit")):
         config = Config.load(_config_file)
         collection_files = CollectionFiles.from_collection(config.collection)
 
@@ -211,8 +211,16 @@ def _edit_photo(path: Path | None = None) -> None:
                 raw_file = single_file.path
                 break
 
-        if not SonyImagingEdge.edit_file(raw_file, collection_files) and path:
-            pause()
+        if (edit_file(raw_file, collection_files)
+                and get_yes_no(prompt="Would you like to move edit files to their correct locations?")):
+            # collection_files has a stale view of the file system so reinitialize it
+            collection_files = CollectionFiles.from_collection(config.collection)
+            move_edit_files(collection_files)
+
+    # If path was specified, we were not run interactively
+    # Pause so the user can read any errors or messages before the console window closes
+    if path:
+        pause()
 
 
 def _sync_people() -> None:

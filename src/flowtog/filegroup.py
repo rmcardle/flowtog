@@ -2,6 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Self
 
+from flowtog.collectiondirectories import DirectoryType
 from flowtog.filetype import FileType
 
 if TYPE_CHECKING:
@@ -42,6 +43,14 @@ class FileGroup:
     @property
     def file_types(self) -> KeysView[FileType]:
         return self.file_type_to_files.keys()
+
+    @property
+    def is_in_unsorted(self) -> bool:
+        return all(file.directory_type == DirectoryType.UNSORTED for file in self.files)
+
+    @property
+    def is_in_rejected(self) -> bool:
+        return all(file.directory_type == DirectoryType.REJECTED for file in self.files)
 
     @property
     def has_edits(self) -> bool:
