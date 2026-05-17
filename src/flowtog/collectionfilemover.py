@@ -290,7 +290,8 @@ def _execute_move_plan(move_plan: _MovePlan, metadata_session: MetadataSession |
         return
 
     if not move_files(move_plan.moves):
-        _LOG.error(f"Group was not moved\n\t{'\n\t'.join(map(str, move_plan.moves))}")
+        formatted_moves = "\n\t".join(f"{source} -> {destination}" for source, destination in move_plan.moves)
+        _LOG.error(f"Group was not moved\n\t{formatted_moves}")
         return
 
     if metadata_session and move_plan.xmp_file_to_remove_rating:
