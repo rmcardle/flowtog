@@ -61,7 +61,7 @@ class _ImportState:
         assert ten_thousands < 10  # noqa: PLR2004 magic-value-comparison
         free_chars = dcf_object_name.free_chars[:-1] + str(ten_thousands)
 
-        destination_file_name = free_chars + str(dcf_object_name.file_num) + dcf_object_name.extension
+        destination_file_name = free_chars + "{:04d}".format(dcf_object_name.file_num) + dcf_object_name.extension
         return destination_file_name, destination_file_num
 
     def _get_destination_file_num(self, file_num: int) -> int:
