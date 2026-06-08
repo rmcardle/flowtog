@@ -32,7 +32,7 @@ class CollectionFile(os.PathLike[str]):
                              directory_type: DirectoryType,
                              is_edit: bool,
                              edit_num: int) -> Self:
-        path = Path(direntry.path)
+        path = _get_normalized_path(direntry)
         stat = direntry.stat()  # Use the cached stat_result in direntry so we don't need to make another system call
         return cls(
             path=path,
@@ -53,3 +53,7 @@ class CollectionFile(os.PathLike[str]):
 
     def __str__(self) -> str:
         return str(self.path)
+
+
+def _get_normalized_path(direntry: os.DirEntry[str]) -> Path:
+    return Path(os.path.abspath(os.path.normpath(os.fspath(direntry))))
