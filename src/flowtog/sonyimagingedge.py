@@ -80,7 +80,7 @@ def _launch_sie_edit(files: list[Path]) -> Application | None:
     else:
         _LOG.debug("Sony Imaging Edge Edit is already running")
 
-    cmdline: str = subprocess.list2cmdline([sie_edit_path, *files])
+    cmdline = subprocess.list2cmdline([sie_edit_path, *files])
 
     _LOG.debug(f"Launching Sony Imaging Edge Edit with command line:\n\t{cmdline}")
     app = Application(backend="win32").start(cmdline)  # pyright: ignore [reportUnknownMemberType]
