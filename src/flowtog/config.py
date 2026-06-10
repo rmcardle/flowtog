@@ -1,3 +1,4 @@
+import os
 import re
 from collections.abc import (
     Iterator,
@@ -6,15 +7,12 @@ from collections.abc import (
 from dataclasses import Field, dataclass, field, fields
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final, Self
+from typing import Any, Final, Self
 
 import win32com.client
 from dataclass_binder import Binder
 
 from flowtog.typing_utils import is_str_list
-
-if TYPE_CHECKING:
-    import os
 
 _DEFAULT_CONFIG_FILE_NAME: Final[str] = "flowtog.toml"
 _DEFAULT_FILENAME_REGEX: Final[str] = r"^(?P<group_name>DSC(?P<file_num>\d{5}))(?:-(?P<edit_num>\d+))?$"
@@ -305,7 +303,8 @@ def get_person_category_groups(person: PersonConfig | None, category_name: str, 
 
 
 def _normalize_path(path: Path, base_dir: Path) -> Path:
-    return path if path.is_absolute() else base_dir / path
+    normalize_path = path if path.is_absolute() else base_dir / path
+    return Path(os.path.normpath(normalize_path)).resolve()
 
 
 def _follow_shortcut(shortcut_path: Path) -> Path:
