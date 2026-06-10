@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import subprocess
 import sys
 from enum import Enum, auto
 from io import TextIOBase
@@ -87,6 +88,7 @@ def _show_main_menu() -> bool:
             "_Edit photo with Sony Imaging Edge Edit",
             "_Sync people to keywords",
             "_Validate collection",
+            "_Open collection folder",
             "View _log file",
             None,
             "E_xit",
@@ -112,6 +114,8 @@ def _show_main_menu() -> bool:
             _sync_people()
         case "v":
             _validate_collection()
+        case "o":
+            _open_folder()
         case "l":
             _view_log_file()
         case _:
@@ -249,6 +253,14 @@ def _validate_collection() -> None:
 
             validator = CollectionValidator.from_collection_files(collection_files, collection_metadata)
             validator.validate()
+
+
+def _open_folder() -> None:
+    subprocess.Popen([  # noqa: S603, S607 subprocess-without-shell-equals-true, start-process-with-partial-path
+        "explorer.exe",
+        "/select,",
+        _config_file.parent,
+    ])
 
 
 def _view_log_file() -> None:
