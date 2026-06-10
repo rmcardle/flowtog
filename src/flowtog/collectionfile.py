@@ -56,4 +56,4 @@ class CollectionFile(os.PathLike[str]):
 
 
 def _get_normalized_path(direntry: os.DirEntry[str]) -> Path:
-    return Path(os.path.abspath(os.path.normpath(os.fspath(direntry))))
+    return Path(os.path.normpath(os.fspath(direntry))).resolve()
